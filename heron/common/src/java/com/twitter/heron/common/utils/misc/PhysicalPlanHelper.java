@@ -16,14 +16,18 @@ package com.twitter.heron.common.utils.misc;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.logging.Logger;
 
 import com.twitter.heron.api.generated.TopologyAPI;
 import com.twitter.heron.api.grouping.CustomStreamGrouping;
+import com.twitter.heron.api.grouping.IReduce;
 import com.twitter.heron.api.utils.Utils;
 import com.twitter.heron.common.utils.metrics.MetricsCollector;
 import com.twitter.heron.common.utils.topology.TopologyContextImpl;
@@ -34,6 +38,7 @@ import com.twitter.heron.proto.system.PhysicalPlans;
  */
 
 public class PhysicalPlanHelper {
+  private static Logger LOG = Logger.getLogger(PhysicalPlanHelper.class.getName());
   private final PhysicalPlans.PhysicalPlan pplan;
   private final int myTaskId;
   private final String myComponent;
@@ -159,6 +164,47 @@ public class PhysicalPlanHelper {
 
   public int getMyTaskId() {
     return myTaskId;
+  }
+
+  public List<Integer> getIndexesOfComponent(String stmgr, String myComponent) {
+    List<Integer> componentIndexes = new ArrayList<>();
+    for (PhysicalPlans.Instance instance : pplan.getInstancesList()) {
+      if (instance.getStmgrId().equals(stmgr)) {
+        if (instance.getInfo().getComponentName().equals(myComponent)) {
+          componentIndexes.add(instance.getInfo().getComponentIndex());
+        }
+      }
+    }
+    return componentIndexes;
+  }
+
+  public String getMyStmgr() {
+    for (PhysicalPlans.Instance instance : pplan.getInstancesList()) {
+      if (instance.getInstanceId().equals(myInstanceId)) {
+        return instance.getStmgrId();
+      }
+    }
+    return null;
+  }
+
+  public String getInstanceIdForComponentIndex(String component, int taskIndex) {
+    for (PhysicalPlans.Instance instance : pplan.getInstancesList()) {
+      if (instance.getInfo().getComponentName().equals(component)
+          && instance.getInfo().getComponentIndex() == taskIndex) {
+        return instance.getInstanceId();
+      }
+    }
+    return null;
+  }
+
+  public List<String> getStmgrsHostingComponent(String component) {
+    Set<String> stmgrSet = new HashSet<>();
+    for (PhysicalPlans.Instance instance : pplan.getInstancesList()) {
+      if (instance.getInfo().getComponentName().equals(component)) {
+        stmgrSet.add(instance.getStmgrId());
+      }
+    }
+    return new ArrayList<>(stmgrSet);
   }
 
   // Accessors
@@ -299,6 +345,38 @@ public class PhysicalPlanHelper {
     }
 
     return terminals;
+  }
+
+  public Map<TopologyAPI.InputStream, IReduce> getCollectiveGroupingFunctions(
+      TopologyAPI.Grouping grouping) {
+    List<TopologyAPI.InputStream> functionList = getCollectiveGroupingStreams(grouping);
+    Map<TopologyAPI.InputStream, IReduce> functions = new HashMap<>();
+    for (TopologyAPI.InputStream input : functionList) {
+      IReduce reduceFunction = (IReduce) Utils.deserialize(
+          input.getCustomGroupingObject().toByteArray());
+      functions.put(input, reduceFunction);
+    }
+    return functions;
+  }
+
+  public List<TopologyAPI.InputStream> getCollectiveGroupingStreams(TopologyAPI.Grouping grouping) {
+    List<TopologyAPI.InputStream> reduceGroupingStreams = new ArrayList<>();
+    // We will build the structure of the topologyBlr - a graph directed from children to parents,
+    // by looking only on bolts, since spout will not have parents
+    for (TopologyAPI.Bolt bolt : pplan.getTopology().getBoltsList()) {
+      // To get the parent's component to construct a graph of topology structure
+      for (TopologyAPI.InputStream inputStream : bolt.getInputsList()) {
+        String parent = inputStream.getStream().getComponentName();
+        // We have a reduce grouping for this component
+        LOG.info(String.format("Input stream: %s %s %s %s",
+            inputStream.getStream().getId(),
+            inputStream.getStream().getComponentName(), myComponent, inputStream.getGtype()));
+        if (inputStream.getGtype() == grouping && parent.equals(myComponent)) {
+          reduceGroupingStreams.add(inputStream);
+        }
+      }
+    }
+    return reduceGroupingStreams;
   }
 
   public boolean isCustomGroupingEmpty() {

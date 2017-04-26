@@ -28,7 +28,6 @@ import com.twitter.heron.api.Config;
 import com.twitter.heron.api.bolt.IOutputCollector;
 import com.twitter.heron.api.serializer.IPluggableSerializer;
 import com.twitter.heron.api.tuple.Tuple;
-import com.twitter.heron.common.basics.Communicator;
 import com.twitter.heron.common.utils.metrics.BoltMetrics;
 import com.twitter.heron.common.utils.misc.PhysicalPlanHelper;
 import com.twitter.heron.common.utils.tuple.TupleImpl;
@@ -67,7 +66,7 @@ public class BoltOutputCollectorImpl implements IOutputCollector {
 
   public BoltOutputCollectorImpl(IPluggableSerializer serializer,
                                  PhysicalPlanHelper helper,
-                                 Communicator<HeronTuples.HeronTupleSet> streamOutQueue,
+                                 OutgoingTupleCollection outputter,
                                  BoltMetrics boltMetrics) {
 
     if (helper.getMyBolt() == null) {
@@ -86,7 +85,7 @@ public class BoltOutputCollectorImpl implements IOutputCollector {
       this.ackEnabled = false;
     }
 
-    this.outputter = new OutgoingTupleCollection(helper.getMyComponent(), streamOutQueue);
+    this.outputter = outputter;
   }
 
   void updatePhysicalPlanHelper(PhysicalPlanHelper physicalPlanHelper) {

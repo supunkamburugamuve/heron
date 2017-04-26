@@ -50,6 +50,9 @@ public abstract class Grouping {
       case CUSTOM:
         return new CustomGrouping(taskIds);
 
+      case REDUCE:
+        return new ReduceGrouping(taskIds);
+
       case DIRECT:
         throw new IllegalArgumentException("Direct Grouping not supported");
 

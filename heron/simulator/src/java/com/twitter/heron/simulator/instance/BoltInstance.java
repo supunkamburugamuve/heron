@@ -27,6 +27,7 @@ import com.twitter.heron.common.basics.SlaveLooper;
 import com.twitter.heron.common.config.SystemConfig;
 import com.twitter.heron.common.utils.misc.PhysicalPlanHelper;
 import com.twitter.heron.common.utils.tuple.TupleImpl;
+import com.twitter.heron.instance.grouping.ReductionInvoker;
 import com.twitter.heron.proto.system.HeronTuples;
 
 public class BoltInstance
@@ -46,7 +47,6 @@ public class BoltInstance
     this.instanceExecuteBatchTime
         = systemConfig.getInstanceExecuteBatchTimeMs() * Constants.MILLISECONDS_TO_NANOSECONDS;
     this.instanceExecuteBatchSize = systemConfig.getInstanceExecuteBatchSizeBytes();
-
   }
 
   private void handleDataTuple(HeronTuples.HeronDataTuple dataTuple,
@@ -65,7 +65,13 @@ public class BoltInstance
     long deserializedTime = System.nanoTime();
 
     // Delegate to the use defined bolt
-    bolt.execute(t);
+    if (!dataTuple.getSubTaskDest()) {
+      // Delegate to the use defined bolt
+      bolt.execute(t);
+    } else {
+      ReductionInvoker reductionInstance = reductionInvokers.get(stream);
+      reductionInstance.execute(dataTuple.getSourceTask(), t);
+    }
 
     long executeLatency = System.nanoTime() - deserializedTime;
 

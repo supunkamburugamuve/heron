@@ -14,6 +14,8 @@
 
 package com.twitter.heron.instance;
 
+import java.util.Map;
+
 import com.twitter.heron.api.generated.TopologyAPI;
 import com.twitter.heron.common.basics.Communicator;
 import com.twitter.heron.common.basics.SingletonRegistry;
@@ -47,6 +49,7 @@ public class OutgoingTupleCollection {
 
   private int dataTupleSetCapacity;
   private int controlTupleSetCapacity;
+  private Map<Integer, Integer> routingTable;
 
   public OutgoingTupleCollection(
       String componentName,

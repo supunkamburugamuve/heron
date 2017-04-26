@@ -27,6 +27,7 @@ enum Grouping {
   NONE = 5;
   DIRECT = 6;
   CUSTOM = 7;
+  REDUCE = 8;
 }
 
 enum Type {

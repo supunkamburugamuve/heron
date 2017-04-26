@@ -15,12 +15,17 @@
 package com.twitter.heron.instance.bolt;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.twitter.heron.api.Config;
 import com.twitter.heron.api.bolt.IBolt;
 import com.twitter.heron.api.bolt.OutputCollector;
 import com.twitter.heron.api.generated.TopologyAPI;
+import com.twitter.heron.api.grouping.IReduce;
 import com.twitter.heron.api.metric.GlobalMetrics;
 import com.twitter.heron.api.serializer.IPluggableSerializer;
 import com.twitter.heron.api.topology.IUpdatable;
@@ -38,12 +43,16 @@ import com.twitter.heron.common.utils.topology.TopologyContextImpl;
 import com.twitter.heron.common.utils.tuple.TickTuple;
 import com.twitter.heron.common.utils.tuple.TupleImpl;
 import com.twitter.heron.instance.IInstance;
+import com.twitter.heron.instance.OutgoingTupleCollection;
+import com.twitter.heron.instance.grouping.ReductionInvoker;
 import com.twitter.heron.proto.system.HeronTuples;
 
 public class BoltInstance implements IInstance {
+  private static Logger LOG = Logger.getLogger(BoltInstance.class.getName());
 
   protected PhysicalPlanHelper helper;
   protected final IBolt bolt;
+  protected Map<TopologyAPI.StreamId, ReductionInvoker> reductionInvokers = new HashMap<>();
   protected final BoltOutputCollectorImpl collector;
   protected final IPluggableSerializer serializer;
   protected final BoltMetrics boltMetrics;
@@ -53,6 +62,7 @@ public class BoltInstance implements IInstance {
   private final SlaveLooper looper;
 
   private final SystemConfig systemConfig;
+  private OutgoingTupleCollection outputter;
 
   public BoltInstance(PhysicalPlanHelper helper,
                       Communicator<HeronTuples.HeronTupleSet> streamInQueue,
@@ -90,7 +100,28 @@ public class BoltInstance implements IInstance {
     } else {
       throw new RuntimeException("Neither java_object nor java_class_name set for bolt");
     }
-    collector = new BoltOutputCollectorImpl(serializer, helper, streamOutQueue, boltMetrics);
+
+    outputter = new OutgoingTupleCollection(helper.getMyComponent(), streamOutQueue);
+    collector = new BoltOutputCollectorImpl(serializer, helper, outputter, boltMetrics);
+
+    // initialize the reduce instances
+    try {
+      initializeReduceInstances();
+    } catch (RuntimeException e) {
+      LOG.log(Level.SEVERE, "failed to initialize reduce instances", e);
+    }
+  }
+
+  private void initializeReduceInstances() {
+    Map<TopologyAPI.InputStream, IReduce> functions =
+        helper.getCollectiveGroupingFunctions(TopologyAPI.Grouping.REDUCE);
+
+    for (Map.Entry<TopologyAPI.InputStream, IReduce> entry : functions.entrySet()) {
+      ReductionInvoker instance = new ReductionInvoker(helper,
+          helper.getTopologyContext().getThisTaskIndex(), entry.getValue(),
+          entry.getKey(), outputter);
+      reductionInvokers.put(entry.getKey().getStream(), instance);
+    }
   }
 
   @Override
@@ -125,6 +156,15 @@ public class BoltInstance implements IInstance {
     // Init the CustomStreamGrouping
     helper.prepareForCustomStreamGrouping();
 
+    try {
+      for (Map.Entry<TopologyAPI.StreamId, ReductionInvoker> entry : reductionInvokers.entrySet()) {
+        ReductionInvoker reductionInvoker = entry.getValue();
+        reductionInvoker.start();
+      }
+    } catch (RuntimeException e) {
+      LOG.log(Level.SEVERE, "failed to initialize reduce instances", e);
+    }
+
     addBoltTasks();
   }
 
@@ -135,6 +175,12 @@ public class BoltInstance implements IInstance {
 
     // Delegate to user-defined clean-up method
     bolt.cleanup();
+
+    // if there are reduce instances, clean them up
+    for (Map.Entry<TopologyAPI.StreamId, ReductionInvoker> entry : reductionInvokers.entrySet()) {
+      ReductionInvoker instance = entry.getValue();
+      instance.stop();
+    }
 
     // Clean the resources we own
     looper.exitLoop();
@@ -203,9 +249,13 @@ public class BoltInstance implements IInstance {
         // Decode the tuple
         TupleImpl t = new TupleImpl(topologyContext, stream, dataTuple.getKey(),
             dataTuple.getRootsList(), values, currentTime, false);
-
-        // Delegate to the use defined bolt
-        bolt.execute(t);
+        if (!dataTuple.getSubTaskDest()) {
+          // Delegate to the use defined bolt
+          bolt.execute(t);
+        } else {
+          ReductionInvoker reductionInstance = reductionInvokers.get(stream);
+          reductionInstance.execute(dataTuple.getSourceTask(), t);
+        }
 
         // Swap
         long startTime = currentTime;

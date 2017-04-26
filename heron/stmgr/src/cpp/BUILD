@@ -9,6 +9,7 @@ cc_library(
         "grouping/grouping.cpp",
         "grouping/lowest-grouping.cpp",
         "grouping/shuffle-grouping.cpp",
+        "grouping/reduce-grouping.cpp",
     ],
     hdrs = [
         "grouping/grouping.h",
@@ -17,6 +18,7 @@ cc_library(
         "grouping/fields-grouping.h",
         "grouping/lowest-grouping.h",
         "grouping/shuffle-grouping.h",
+        "grouping/reduce-grouping.h",
     ],
     copts = [
         "-Iheron",

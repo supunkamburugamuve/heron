@@ -23,6 +23,7 @@ import com.google.protobuf.ByteString;
 import com.twitter.heron.api.bolt.IRichBolt;
 import com.twitter.heron.api.generated.TopologyAPI;
 import com.twitter.heron.api.grouping.CustomStreamGrouping;
+import com.twitter.heron.api.grouping.IReduce;
 import com.twitter.heron.api.tuple.Fields;
 import com.twitter.heron.api.utils.Utils;
 
@@ -169,6 +170,18 @@ public class BoltDeclarer extends BaseComponentDeclarer<BoltDeclarer> {
     bldr.setGtype(TopologyAPI.Grouping.CUSTOM);
     bldr.setType(TopologyAPI.CustomGroupingObjectType.JAVA_OBJECT);
     bldr.setCustomGroupingObject(ByteString.copyFrom(Utils.serialize(grouping)));
+    return grouping(bldr);
+  }
+
+  public BoltDeclarer reduceGrouping(String componentName, String streamId,
+                                     IReduce reduceFunction) {
+    TopologyAPI.InputStream.Builder bldr = TopologyAPI.InputStream.newBuilder();
+    bldr.setStream(
+        TopologyAPI.StreamId.newBuilder().setId(streamId).setComponentName(componentName));
+    bldr.setGtype(TopologyAPI.Grouping.REDUCE);
+    bldr.setType(TopologyAPI.CustomGroupingObjectType.JAVA_OBJECT);
+    bldr.setCustomGroupingObject(ByteString.copyFrom(Utils.serialize(reduceFunction)));
+
     return grouping(bldr);
   }
 
