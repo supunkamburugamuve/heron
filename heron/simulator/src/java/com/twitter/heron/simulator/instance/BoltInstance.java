@@ -16,6 +16,8 @@ package com.twitter.heron.simulator.instance;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.google.protobuf.ByteString;
 
@@ -27,12 +29,11 @@ import com.twitter.heron.common.basics.SlaveLooper;
 import com.twitter.heron.common.config.SystemConfig;
 import com.twitter.heron.common.utils.misc.PhysicalPlanHelper;
 import com.twitter.heron.common.utils.tuple.TupleImpl;
-import com.twitter.heron.instance.grouping.ReductionInvoker;
 import com.twitter.heron.proto.system.HeronTuples;
 
 public class BoltInstance
     extends com.twitter.heron.instance.bolt.BoltInstance implements IInstance {
-
+  private static Logger LOG = Logger.getLogger(BoltInstance.class.getName());
   private final long instanceExecuteBatchTime;
   private final long instanceExecuteBatchSize;
 
@@ -60,17 +61,20 @@ public class BoltInstance
 
     // Decode the tuple
     TupleImpl t = new TupleImpl(helper.getTopologyContext(), stream, dataTuple.getKey(),
-        dataTuple.getRootsList(), values);
+        dataTuple.getRootsList(), values, System.nanoTime(), true, dataTuple.getSourceTask());
 
     long deserializedTime = System.nanoTime();
 
     // Delegate to the use defined bolt
     if (!dataTuple.getSubTaskDest()) {
       // Delegate to the use defined bolt
+//      LOG.log(Level.INFO, String.format("Subtask dest false %d -> %d",
+//          dataTuple.getSourceTask(), helper.getMyTaskId()));
       bolt.execute(t);
     } else {
-      ReductionInvoker reductionInstance = reductionInvokers.get(stream);
-      reductionInstance.execute(dataTuple.getSourceTask(), t);
+//      LOG.log(Level.INFO, String.format("Subtask dest true %d -> %d",
+//          dataTuple.getSourceTask(), helper.getMyTaskId()));
+      subTasks.execute(stream, t);
     }
 
     long executeLatency = System.nanoTime() - deserializedTime;

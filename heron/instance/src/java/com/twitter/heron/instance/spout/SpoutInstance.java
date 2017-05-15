@@ -16,6 +16,7 @@ package com.twitter.heron.instance.spout;
 
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.twitter.heron.api.Config;
@@ -308,6 +309,7 @@ public class SpoutInstance implements IInstance {
 
         // This tuple has been removed due to time-out
         if (rootTupleInfo == null) {
+          LOG.log(Level.WARNING, "Acknowledgement received after the tuple timed out");
           return;
         }
         Object messageId = rootTupleInfo.getMessageId();

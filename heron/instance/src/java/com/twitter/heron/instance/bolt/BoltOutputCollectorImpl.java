@@ -32,6 +32,7 @@ import com.twitter.heron.common.utils.metrics.BoltMetrics;
 import com.twitter.heron.common.utils.misc.PhysicalPlanHelper;
 import com.twitter.heron.common.utils.tuple.TupleImpl;
 import com.twitter.heron.instance.OutgoingTupleCollection;
+import com.twitter.heron.instance.grouping.SubTasks;
 import com.twitter.heron.proto.system.HeronTuples;
 
 /**
@@ -55,19 +56,21 @@ import com.twitter.heron.proto.system.HeronTuples;
 public class BoltOutputCollectorImpl implements IOutputCollector {
   private static final Logger LOG = Logger.getLogger(BoltOutputCollectorImpl.class.getName());
 
-  private final IPluggableSerializer serializer;
-  private final OutgoingTupleCollection outputter;
+  protected final IPluggableSerializer serializer;
+  protected final OutgoingTupleCollection outputter;
 
   // Reference to update the bolt metrics
-  private final BoltMetrics boltMetrics;
-  private PhysicalPlanHelper helper;
+  protected final BoltMetrics boltMetrics;
+  protected PhysicalPlanHelper helper;
 
-  private final boolean ackEnabled;
+  protected final boolean ackEnabled;
+  protected final SubTasks subTasks;
 
   public BoltOutputCollectorImpl(IPluggableSerializer serializer,
                                  PhysicalPlanHelper helper,
                                  OutgoingTupleCollection outputter,
-                                 BoltMetrics boltMetrics) {
+                                 BoltMetrics boltMetrics,
+                                 SubTasks subTasks) {
 
     if (helper.getMyBolt() == null) {
       throw new RuntimeException(helper.getMyTaskId() + " is not a bolt ");
@@ -75,6 +78,7 @@ public class BoltOutputCollectorImpl implements IOutputCollector {
 
     this.serializer = serializer;
     this.boltMetrics = boltMetrics;
+    this.subTasks = subTasks;
     updatePhysicalPlanHelper(helper);
 
     Map<String, Object> config = helper.getTopologyContext().getTopologyConfig();
@@ -153,7 +157,7 @@ public class BoltOutputCollectorImpl implements IOutputCollector {
   /////////////////////////////////////////////////////////
   // Following private methods are internal implementations
   /////////////////////////////////////////////////////////
-  private List<Integer> admitBoltTuple(
+  protected List<Integer> admitBoltTuple(
       String streamId,
       Collection<Tuple> anchors,
       List<Object> tuple) {
@@ -198,6 +202,8 @@ public class BoltOutputCollectorImpl implements IOutputCollector {
       }
     }
 
+    addSubTasks(bldr, streamId);
+
     long tupleSizeInBytes = 0;
     long startTime = System.nanoTime();
 
@@ -208,6 +214,7 @@ public class BoltOutputCollectorImpl implements IOutputCollector {
       bldr.addValues(bstr);
       tupleSizeInBytes += b.length;
     }
+    bldr.setSourceTask(helper.getMyTaskId());
 
     long latency = System.nanoTime() - startTime;
     boltMetrics.serializeDataTuple(streamId, latency);
@@ -221,7 +228,28 @@ public class BoltOutputCollectorImpl implements IOutputCollector {
     return null;
   }
 
-  private void admitAckTuple(Tuple tuple) {
+  protected void addSubTasks(HeronTuples.HeronDataTuple.Builder bldr, String streamId) {
+    if (subTasks.isSubTaskDestination(streamId)) {
+      bldr.setSubTaskDest(true);
+      List<Integer> subTasksDestinations = subTasks.getSubTaskDestinations(streamId);
+      // we may send this to our substask
+      String s = "";
+      if (subTasksDestinations.contains(helper.getMyTaskId())) {
+        bldr.addDestTaskIds(helper.getMyTaskId());
+        s += helper.getMyTaskId();
+      } else {
+        for (Integer i : subTasksDestinations) {
+          bldr.addDestTaskIds(i);
+          s += i + " ";
+        }
+      }
+//      bldr.addDestTaskIds(helper.getMyTaskId());
+//      LOG.log(Level.INFO, String.format("%d Bolt adding subtask destinations %s: %s",
+//          helper.getMyTaskId(), streamId, s));
+    }
+  }
+
+  protected void admitAckTuple(Tuple tuple) {
     long latency = 0;
     if (ackEnabled) {
       if (tuple instanceof TupleImpl) {
@@ -248,7 +276,7 @@ public class BoltOutputCollectorImpl implements IOutputCollector {
     boltMetrics.ackedTuple(tuple.getSourceStreamId(), tuple.getSourceComponent(), latency);
   }
 
-  private void admitFailTuple(Tuple tuple) {
+  protected void admitFailTuple(Tuple tuple) {
     long latency = 0;
     if (ackEnabled) {
       if (tuple instanceof TupleImpl) {

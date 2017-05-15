@@ -166,12 +166,12 @@ public class PhysicalPlanHelper {
     return myTaskId;
   }
 
-  public List<Integer> getIndexesOfComponent(String stmgr, String myComponent) {
+  public List<Integer> getTaskIdsOfComponent(String stmgr, String myComponent) {
     List<Integer> componentIndexes = new ArrayList<>();
     for (PhysicalPlans.Instance instance : pplan.getInstancesList()) {
       if (instance.getStmgrId().equals(stmgr)) {
         if (instance.getInfo().getComponentName().equals(myComponent)) {
-          componentIndexes.add(instance.getInfo().getComponentIndex());
+          componentIndexes.add(instance.getInfo().getTaskId());
         }
       }
     }
@@ -187,10 +187,10 @@ public class PhysicalPlanHelper {
     return null;
   }
 
-  public String getInstanceIdForComponentIndex(String component, int taskIndex) {
+  public String getInstanceIdForComponentId(String component, int taskId) {
     for (PhysicalPlans.Instance instance : pplan.getInstancesList()) {
       if (instance.getInfo().getComponentName().equals(component)
-          && instance.getInfo().getComponentIndex() == taskIndex) {
+          && instance.getInfo().getTaskId() == taskId) {
         return instance.getInstanceId();
       }
     }

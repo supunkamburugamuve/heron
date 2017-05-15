@@ -137,9 +137,14 @@ public abstract class WakeableLooper {
     // add some items into this list during the iteration, which may cause
     // ConcurrentModificationException
     // We pre-get the size to avoid execute the tasks added during execution
-    int s = tasksOnWakeup.size();
-    for (int i = 0; i < s; i++) {
-      tasksOnWakeup.get(i).run();
+    try {
+      int s = tasksOnWakeup.size();
+      for (int i = 0; i < s; i++) {
+        tasksOnWakeup.get(i).run();
+      }
+    } catch (Throwable t) {
+      t.printStackTrace();
+      throw t;
     }
   }
 

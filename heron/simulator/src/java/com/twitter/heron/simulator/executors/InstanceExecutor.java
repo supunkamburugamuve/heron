@@ -36,7 +36,7 @@ import com.twitter.heron.simulator.instance.SpoutInstance;
  * It helps uniform the ways to access instance resources
  */
 public class InstanceExecutor implements Runnable {
-  public static final int CAPACITY = 5;
+  public static final int CAPACITY = 500;
   public static final double CURRENT_SAMPLE_WEIGHT = 0.5;
 
   private static final Logger LOG = Logger.getLogger(InstanceExecutor.class.getName());

@@ -14,15 +14,18 @@
 
 package com.twitter.heron.simulator.executors;
 
+import java.net.Inet4Address;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.twitter.heron.api.generated.TopologyAPI;
+import com.twitter.heron.common.basics.Pair;
 import com.twitter.heron.common.basics.SlaveLooper;
 import com.twitter.heron.common.basics.WakeableLooper;
 import com.twitter.heron.proto.stmgr.StreamManager;
@@ -121,6 +124,7 @@ public class StreamExecutor implements Runnable {
     looper.addTasksOnWakeup(streamExecutorsTasks);
   }
 
+  Map<Pair<Integer, Integer>, Integer> counts = new HashMap<>();
   /**
    * Handle the execution of the instance
    */
@@ -145,7 +149,9 @@ public class StreamExecutor implements Runnable {
             for (HeronTuples.HeronDataTuple tuple : d.getTuplesList()) {
               List<Integer> outTasks = consumers.getListToSend(tuple);
 
-              outTasks.addAll(tuple.getDestTaskIdsList());
+              if (!tuple.getSubTaskDest()) {
+                outTasks.addAll(tuple.getDestTaskIdsList());
+              }
 
               if (outTasks.isEmpty()) {
                 LOG.severe("Nobody to sent the tuple to");
@@ -170,6 +176,9 @@ public class StreamExecutor implements Runnable {
         }
       }
     }
+//    for (Map.Entry<Pair<Integer, Integer>, Integer> e : counts.entrySet()) {
+//      LOG.info(String.format("%d -> %d : %d", e.getKey().first, e.getKey().second, e.getValue()));
+//    }
   }
 
   // Check whether target destination task has free room to receive more tuples
@@ -183,6 +192,8 @@ public class StreamExecutor implements Runnable {
     return true;
   }
 
+  private int dataMessages = 0;
+  private Map<Integer, Integer> messageCounts = new HashMap<>();
   // Process HeronDataTuple and insert it into cache
   protected void copyDataOutBound(int sourceTaskId,
                                   boolean isLocalSpout,
@@ -192,7 +203,13 @@ public class StreamExecutor implements Runnable {
     boolean firstIteration = true;
     boolean isAnchored = tuple.getRootsCount() > 0;
 
+    String s = "";
+    int count =0;
     for (Integer outTask : outTasks) {
+      s += outTask + " ";
+      dataMessages++;
+      count++;
+//      LOG.log(Level.INFO, "Data messages: " + dataMessages);
       long tupleKey = tupleCache.addDataTuple(outTask, streamId, tuple, isAnchored);
       if (isAnchored) {
         // Anchored tuple
@@ -219,6 +236,10 @@ public class StreamExecutor implements Runnable {
       }
 
       firstIteration = false;
+    }
+
+    if (count > 1) {
+      LOG.log(Level.INFO, "" + sourceTaskId + " Multiple out tasks: " + s);
     }
   }
 

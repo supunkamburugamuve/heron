@@ -17,6 +17,8 @@ package com.twitter.heron.simulator.utils;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Rotating Map maintains a list of unordered maps.
@@ -29,6 +31,8 @@ import java.util.Map;
  */
 
 public class RotatingMap {
+  private static Logger LOG = Logger.getLogger(RotatingMap.class.getName());
+
   private final LinkedList<Map<Long, Long>> buckets = new LinkedList<>();
 
   // Creates a rotating map with nBuckets maps
@@ -61,10 +65,10 @@ public class RotatingMap {
         long currentValue = m.get(key);
         long newValue = currentValue ^ value;
         m.put(key, newValue);
-
         return newValue == 0;
       }
     }
+    LOG.log(Level.INFO, "Failed to anchor: " + value + " " + key);
     return false;
   }
 

@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.LinkedTransferQueue;
 
+import com.twitter.heron.api.bolt.IOutputCollector;
 import com.twitter.heron.api.topology.TopologyContext;
 import com.twitter.heron.api.tuple.Tuple;
 
@@ -37,7 +38,7 @@ public abstract class BasicReduceGrouping implements IReduce {
 
   @Override
   public void prepare(Map<String, Object> heronConf, TopologyContext context,
-                      List<Integer> expectedSourceIndexes) {
+                      List<Integer> expectedSourceIndexes, IOutputCollector collector) {
     this.heronConf = heronConf;
     this.topologyContext = context;
     this.expectedSourceIndexes = expectedSourceIndexes;
@@ -47,7 +48,7 @@ public abstract class BasicReduceGrouping implements IReduce {
   }
 
   @Override
-  public List<Object> execute(int sourceTask, Tuple input) {
+  public void execute(int sourceTask, Tuple input) {
     LinkedTransferQueue<Tuple> queue = taskMessageQueues.get(sourceTask);
     queue.put(input);
     Tuple firstTuple = null;
@@ -85,8 +86,6 @@ public abstract class BasicReduceGrouping implements IReduce {
           }
         }
         if (firstTuple != null) {
-//          TupleImpl tupleImpl = new TupleImpl(topologyContext, null, 0l, null, currentReducedTuple);
-//          currentReducedTuple = execute(firstTuple, tupleImpl);
           currentReduceTupleCount++;
           currentResultIndexes.add(firstTupleIndex);
         }
@@ -101,8 +100,6 @@ public abstract class BasicReduceGrouping implements IReduce {
       }
     } catch (InterruptedException ignore) {
     }
-
-    return ret;
   }
 
   public abstract List<Object> execute(Tuple firstTuple, Tuple secondTuple);

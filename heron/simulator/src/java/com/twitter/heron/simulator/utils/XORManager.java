@@ -18,12 +18,14 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import com.twitter.heron.api.generated.TopologyAPI;
 import com.twitter.heron.common.basics.Constants;
 import com.twitter.heron.common.basics.WakeableLooper;
 
 public class XORManager {
+  private static Logger LOG = Logger.getLogger(XORManager.class.getName());
   private final WakeableLooper looper;
 
   // map of task_id to a RotatingMap
@@ -94,6 +96,7 @@ public class XORManager {
   // value is the tuple key as seen by the
   // destination
   public void create(int taskId, long key, long value) {
+//    LOG.log(Level.INFO, String.format("Create %d %d %d", taskId, key, value));
     spoutTasksToRotatingMap.get(taskId).create(key, value);
   }
 
@@ -106,6 +109,7 @@ public class XORManager {
   // We return true if the xor value is now zerod out
   // Else return false
   public boolean anchor(int taskId, long key, long value) {
+//    LOG.log(Level.INFO, String.format("Create %d %d %d", taskId, key, value));
     return spoutTasksToRotatingMap.get(taskId).anchor(key, value);
   }
 

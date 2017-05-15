@@ -626,8 +626,10 @@ void StMgr::HandleInstanceData(const sp_int32 _src_task_id, bool _local_spout,
         s_consumer->GetListToSend(*_tuple, out_tasks_);
         // In addition to out_tasks_, the instance might have asked
         // us to send the tuple to some more tasks
-        for (sp_int32 j = 0; j < _tuple->dest_task_ids_size(); ++j) {
-          out_tasks_.push_back(_tuple->dest_task_ids(j));
+        if (!_tuple->sub_task_dest()) {
+          for (sp_int32 j = 0; j < _tuple->dest_task_ids_size(); ++j) {
+            out_tasks_.push_back(_tuple->dest_task_ids(j));
+          }
         }
         if (out_tasks_.empty()) {
           LOG(ERROR) << "Nobody to send the tuple to";

@@ -20,9 +20,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.twitter.heron.api.generated.TopologyAPI;
+import com.twitter.heron.common.basics.Pair;
 
 public class CollectiveBinaryTreeHelper {
   private Logger LOG = Logger.getLogger(CollectiveBinaryTreeHelper.class.getName());
@@ -50,20 +52,20 @@ public class CollectiveBinaryTreeHelper {
   private class TreeNode {
     List<TreeNode> children = new ArrayList<>();
     TreeNode parent;
-    int taskIndex;
+    int taskId;
     String stmgrId;
     String instanceId;
 
-    public TreeNode(TreeNode parent, int taskIndex, String stmgrId, String instanceId) {
+    public TreeNode(TreeNode parent, int taskId, String stmgrId, String instanceId) {
       this.parent = parent;
-      this.taskIndex = taskIndex;
+      this.taskId = taskId;
       this.stmgrId = stmgrId;
       this.instanceId = instanceId;
     }
   }
 
-  public Map<TopologyAPI.InputStream, Map<Integer, Integer>> getRoutingTables() {
-    Map<TopologyAPI.InputStream, Map<Integer, Integer>> routings = new HashMap<>();
+  public Map<TopologyAPI.StreamId, List<Pair<Integer, Integer>>> getRoutingTables() {
+    Map<TopologyAPI.StreamId, List<Pair<Integer, Integer>>> routings = new HashMap<>();
     List<TopologyAPI.InputStream> reduceStreams =
         helper.getCollectiveGroupingStreams(grouping);
     for (TopologyAPI.InputStream stream : reduceStreams) {
@@ -71,47 +73,85 @@ public class CollectiveBinaryTreeHelper {
       if (tree == null) {
         throw new RuntimeException("Failed to build tree");
       }
-      Map<Integer, Integer> routingPerStream = getMessageExpectedIndexes(tree);
-      routings.put(stream, routingPerStream);
+      TreeNode search = search(tree, helper.getMyStmgr(), helper.getMyTaskId());
+      if (search != null) {
+        List<Pair<Integer, Integer>> routingPerStream = getMessageExpectedIndexes(search);
+        routings.put(stream.getStream(), routingPerStream);
+      } else {
+        LOG.log(Level.SEVERE, "Failed find the my task id in the tree");
+      }
     }
     return routings;
   }
 
-  private Map<Integer, Integer> getMessageExpectedIndexes(TreeNode treeNode) {
-    Map<Integer, Integer> table = new HashMap<>();
-    int myIndex = helper.getMyInstanceIndex();
+  private List<Pair<Integer, Integer>> getMessageExpectedIndexes(TreeNode treeNode) {
+    List<Pair<Integer, Integer>> table = new ArrayList<>();
+    int myTaskId = helper.getMyTaskId();
+
+    if (myTaskId != treeNode.taskId) {
+      String format = String.format("Unexpected task id %d != %d",
+          myTaskId, treeNode.taskId);
+      LOG.log(Level.SEVERE, format);
+      throw new RuntimeException(format);
+    }
+
     for (TreeNode child : treeNode.children) {
-      table.put(child.taskIndex, myIndex);
+      table.add(new Pair<Integer, Integer>(child.taskId, myTaskId));
     }
 
     if (treeNode.parent != null) {
-      table.put(myIndex, treeNode.parent.taskIndex);
+      table.add(new Pair<Integer, Integer>(myTaskId, treeNode.parent.taskId));
     }
+
+    if (treeNode.children.size() > 0) {
+      table.add(new Pair<Integer, Integer>(myTaskId, myTaskId));
+    }
+
     return table;
   }
 
-  private TreeNode buildIntraNodeTree(String stmgrId, TopologyAPI.StreamId id) {
-    List<Integer> indexes = helper.getIndexesOfComponent(stmgrId, id.getComponentName());
+  private TreeNode search(TreeNode root, String stmgrId, int taskId) {
+    Queue<TreeNode> queue = new LinkedList<>();
+    queue.add(root);
 
-    if (indexes.size() == 0) {
+    while (queue.size() > 0) {
+      TreeNode current = queue.poll();
+      if (current.taskId == taskId && current.stmgrId.equals(stmgrId)) {
+        return current;
+      } else {
+        queue.addAll(current.children);
+      }
+    }
+
+    return null;
+  }
+
+  private TreeNode buildIntraNodeTree(String stmgrId, TopologyAPI.StreamId id) {
+    List<Integer> taskIds = helper.getTaskIdsOfComponent(stmgrId, id.getComponentName());
+
+    if (taskIds.size() == 0) {
       return null;
     }
 
-    // sort the indexes to make sure everybody creating the same tree
-    Collections.sort(indexes);
+    LOG.log(Level.INFO, "Number of tasks: " + taskIds.size());
 
-    TreeNode root = new TreeNode(null, indexes.get(0), stmgrId,
-        helper.getInstanceIdForComponentIndex(id.getComponentName(), indexes.get(0)));
+    // sort the taskIds to make sure everybody creating the same tree
+    Collections.sort(taskIds);
+
+    TreeNode root = new TreeNode(null, taskIds.get(0), stmgrId,
+        helper.getInstanceIdForComponentId(id.getComponentName(), taskIds.get(0)));
     Queue<TreeNode> queue = new LinkedList<>();
     queue.add(root);
 
     TreeNode current = queue.poll();
-    for (int i = 1; i < indexes.size(); i++) {
+    int i = 1;
+    while (i < taskIds.size()) {
       if (current.children.size() < intraNodeDegree) {
-        TreeNode e = new TreeNode(current, indexes.get(i), stmgrId,
-            helper.getInstanceIdForComponentIndex(id.getComponentName(), indexes.get(i)));
+        TreeNode e = new TreeNode(current, taskIds.get(i), stmgrId,
+            helper.getInstanceIdForComponentId(id.getComponentName(), taskIds.get(i)));
         current.children.add(e);
         queue.add(e);
+        i++;
       } else {
         current = queue.poll();
       }
@@ -121,14 +161,12 @@ public class CollectiveBinaryTreeHelper {
   }
 
   private TreeNode buildInterNodeTree(TopologyAPI.StreamId id) {
-    String myStmgr = helper.getMyStmgr();
     // get the stmgrs hosting the component
     List<String> stmgrs = helper.getStmgrsHostingComponent(id.getComponentName());
-
+    LOG.log(Level.INFO, "Number of stream managers: " + stmgrs.size());
     if (stmgrs.size() == 0) {
       return null;
     }
-
 
     // sort the list
     Collections.sort(stmgrs);
@@ -137,24 +175,19 @@ public class CollectiveBinaryTreeHelper {
     queue.add(root);
 
     TreeNode current = queue.poll();
-    int currentChildren = 0;
-    for (int i = 1; i < stmgrs.size(); i++) {
-      if (currentChildren < interNodeDegree) {
+    int i = 1;
+    while (i < stmgrs.size()) {
+      if (current.children.size() < interNodeDegree) {
         TreeNode e = buildIntraNodeTree(stmgrs.get(i), id);
         if (e != null) {
           current.children.add(e);
           e.parent = current;
           queue.add(e);
-          currentChildren++;
         } else {
           throw new RuntimeException("Stream manager with 0 components for building tree");
         }
+        i++;
       } else {
-        // lets return the current node for our stream manager
-        if (current.stmgrId.equals(myStmgr)) {
-          return current;
-        }
-        currentChildren = 0;
         current = queue.poll();
       }
     }

@@ -243,6 +243,7 @@ public class SpoutOutputCollectorImpl implements ISpoutOutputCollector {
       bldr.addValues(bstr);
       tupleSizeInBytes += b.length;
     }
+    bldr.setSourceTask(helper.getMyTaskId());
 
     long latency = System.nanoTime() - startTime;
     spoutMetrics.serializeDataTuple(streamId, latency);

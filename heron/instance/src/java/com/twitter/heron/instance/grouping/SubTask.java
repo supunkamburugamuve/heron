@@ -11,19 +11,16 @@
 //  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //  See the License for the specific language governing permissions and
 //  limitations under the License
-package com.twitter.heron.api.grouping;
+package com.twitter.heron.instance.grouping;
 
-import java.io.Serializable;
 import java.util.List;
-import java.util.Map;
 
-import com.twitter.heron.api.bolt.IOutputCollector;
-import com.twitter.heron.api.topology.TopologyContext;
-import com.twitter.heron.api.tuple.Tuple;
+import com.twitter.heron.common.utils.tuple.TupleImpl;
 
-public interface IReduce extends Serializable {
-  void prepare(Map<String, Object> heronConf, TopologyContext context,
-               List<Integer> expectedSourceIndexes, IOutputCollector outputCollector);
-  void execute(int sourceIndex, Tuple input);
-  void cleanup();
+public interface SubTask {
+  void execute(int taskIndex, TupleImpl tuple);
+  void start( List<Integer> incomingTasks, List<Integer> destTask);
+  void stop();
+  List<Integer> getDestinationTask();
+  List<Integer> getSourceTasks();
 }
