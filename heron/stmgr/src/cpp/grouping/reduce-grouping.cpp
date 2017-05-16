@@ -43,7 +43,7 @@ void ReduceGrouping::GetListToSend(const proto::system::HeronDataTuple& _tuple,
   } else {
     _return.push_back(task_ids_[next_index_]);
     next_index_ = (next_index_ + 1) % task_ids_.size();
-    LOG(INFO) << "shuffle to: " << _tuple.dest_task_ids(0);
+    LOG(INFO) << "shuffle to: " << next_index_;
   }
 }
 
