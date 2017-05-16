@@ -57,6 +57,7 @@ public class SlurmScheduler implements IScheduler {
 
     // get the topology working directory
     this.workingDirectory = SlurmContext.workingDirectory(config);
+    LOG.log(Level.INFO, "Working directory: " + workingDirectory);
   }
 
   /**
