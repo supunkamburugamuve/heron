@@ -24,6 +24,7 @@
 #include "grouping/all-grouping.h"
 #include "grouping/lowest-grouping.h"
 #include "grouping/custom-grouping.h"
+#include "grouping/reduce-grouping.h"
 #include "proto/messages.h"
 #include "basics/basics.h"
 #include "errors/errors.h"
