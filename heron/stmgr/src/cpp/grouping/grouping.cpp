@@ -78,6 +78,11 @@ Grouping* Grouping::Create(proto::api::Grouping grouping_, const proto::api::Inp
       break;
     }
 
+    case proto::api::REDUCE: {
+      return new ReduceGrouping(_task_ids);
+      break;
+    }
+
     default: {
       LOG(FATAL) << "Unknown grouping " << grouping_;
       return NULL;  // keep compiler happy
