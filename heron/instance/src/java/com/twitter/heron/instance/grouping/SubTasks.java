@@ -107,7 +107,11 @@ public class SubTasks {
 
   public void execute(TopologyAPI.StreamId stream, TupleImpl t) {
     SubTask subTask = subTaskMap.get(stream);
-    subTask.execute(t.getSourceTask(), t);
+    if (subTask != null) {
+      subTask.execute(t.getSourceTask(), t);
+    } else {
+      throw new RuntimeException("Subtask for stream is null: " + stream.getId());
+    }
   }
 
   public List<Integer> getSubTaskDestinations(String stream) {

@@ -559,7 +559,15 @@ void StMgr::ProcessAcksAndFails(sp_int32 _task_id,
     const proto::system::AckTuple& ack_tuple = _control.emits(i);
     for (sp_int32 j = 0; j < ack_tuple.roots_size(); ++j) {
       CHECK_EQ(_task_id, ack_tuple.roots(j).taskid());
-      CHECK(!xor_mgrs_->anchor(_task_id, ack_tuple.roots(j).key(), ack_tuple.ackedtuple()));
+      bool done = xor_mgrs_->anchor(_task_id, ack_tuple.roots(j).key(), ack_tuple.ackedtuple());
+//      if (done) {
+//        LOG(INFO) << "Failed to anchor to: " << _task_id << " key: "  << ack_tuple.roots(j).key()
+//          << " t: " << ack_tuple.ackedtuple();
+//      } else {
+//        LOG(INFO) << "Emit anchor to: " << _task_id << " key: " << ack_tuple.roots(j).key()
+//                  << " t: " << ack_tuple.ackedtuple();
+//      }
+      CHECK(!done);
     }
   }
 
@@ -577,6 +585,7 @@ void StMgr::ProcessAcksAndFails(sp_int32 _task_id,
         r->set_taskid(_task_id);
         a->set_ackedtuple(0);  // this is ignored
         CHECK(xor_mgrs_->remove(_task_id, ack_tuple.roots(j).key()));
+//        LOG(INFO) << "Done :" << _task_id << " key: " << ack_tuple.roots(j).key();
       }
     }
   }
@@ -697,6 +706,8 @@ void StMgr::CopyDataOutBound(sp_int32 _src_task_id, bool _local_spout,
         } else {
           CHECK(!xor_mgrs_->anchor(_src_task_id, _tuple->roots(0).key(), tuple_key));
         }
+//        LOG(INFO) << "Anchor with: " << _src_task_id << " key: "
+//          << _tuple->roots(0).key() << " t: " << tuple_key;
       } else {
         // Anchored emits from local bolt
         for (sp_int32 i = 0; i < _tuple->roots_size(); ++i) {
@@ -704,6 +715,8 @@ void StMgr::CopyDataOutBound(sp_int32 _src_task_id, bool _local_spout,
           t.add_roots()->CopyFrom(_tuple->roots(i));
           t.set_ackedtuple(tuple_key);
           tuple_cache_->add_emit_tuple(_tuple->roots(i).taskid(), t);
+//          LOG(INFO) << "Process emit tuple: " << _tuple->roots(i).taskid() << " key: "
+//            << tuple_key << " root: " << _tuple->roots(i).key();
         }
       }
     }

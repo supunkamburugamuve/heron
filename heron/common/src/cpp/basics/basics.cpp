@@ -16,6 +16,8 @@
 
 #include <signal.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include <chrono>
 #include <cstddef>
@@ -163,7 +165,7 @@ static void InitHelper(const char* argv0, const char* instance, bool istest) {
   InitLogging();
 
   // init the random number system
-  ::srand(time(nullptr));
+  ::srand(time(nullptr) + getpid());
 }
 
 /**

@@ -263,6 +263,7 @@ public class SpoutOutputCollectorImpl implements ISpoutOutputCollector {
     HeronTuples.RootId.Builder rtbldr = HeronTuples.RootId.newBuilder();
     rtbldr.setTaskid(helper.getMyTaskId());
     rtbldr.setKey(rootId);
+    // LOG.log(Level.INFO, "Emiting key: " + rootId);
     inFlightTuples.put(rootId, tupleInfo);
     return rtbldr;
   }

@@ -150,6 +150,7 @@ public class CollectiveBinaryTreeHelper {
         TreeNode e = new TreeNode(current, taskIds.get(i), stmgrId,
             helper.getInstanceIdForComponentId(id.getComponentName(), taskIds.get(i)));
         current.children.add(e);
+        e.parent = current;
         queue.add(e);
         i++;
       } else {
@@ -165,12 +166,23 @@ public class CollectiveBinaryTreeHelper {
     List<String> stmgrs = helper.getStmgrsHostingComponent(id.getComponentName());
     LOG.log(Level.INFO, "Number of stream managers: " + stmgrs.size());
     if (stmgrs.size() == 0) {
+      LOG.log(Level.WARNING, "Stream managers for component is zero: " + id.getComponentName());
       return null;
+    }
+
+    if (interNodeDegree <= intraNodeDegree) {
+      LOG.log(Level.WARNING, "Increasing inter node degree by 2: " + interNodeDegree);
+      interNodeDegree = intraNodeDegree + 2;
     }
 
     // sort the list
     Collections.sort(stmgrs);
     TreeNode root = buildIntraNodeTree(stmgrs.get(0), id);
+    if (root == null) {
+      LOG.log(Level.WARNING, "Intranode tree didn't built: " + stmgrs.get(0) +
+          " : " + id.getComponentName());
+      return null;
+    }
     Queue<TreeNode> queue = new LinkedList<>();
     queue.add(root);
 
