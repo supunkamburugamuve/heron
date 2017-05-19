@@ -171,8 +171,8 @@ public class CollectiveBinaryTreeHelper {
     }
 
     if (interNodeDegree <= intraNodeDegree) {
-      LOG.log(Level.WARNING, "Increasing inter node degree by 2: " + interNodeDegree);
-      interNodeDegree = intraNodeDegree + 2;
+      LOG.log(Level.WARNING, "Increasing inter node degree by 64: " + interNodeDegree);
+      interNodeDegree = intraNodeDegree + 64;
     }
 
     // sort the list
