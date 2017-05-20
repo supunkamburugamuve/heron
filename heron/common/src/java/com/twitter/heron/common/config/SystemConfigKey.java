@@ -140,6 +140,12 @@ public enum SystemConfigKey {
    */
   INSTANCE_SET_CONTROL_TUPLE_CAPACITY("heron.instance.set.control.tuple.capacity", Type.INTEGER),
 
+  COLLECTIVE_BINARY_TREE_INTRA_NODE_DEGREE(
+      "heron.collective.binary.intranode.degree", Type.INTEGER),
+
+  COLLECTIVE_BINARY_TREE_INTER_NODE_DEGREE(
+      "heron.collective.binary.internode.degree", Type.INTEGER),
+
   /**
    * The maximum time in ms for an spout to do acknowledgement per attempt
    */

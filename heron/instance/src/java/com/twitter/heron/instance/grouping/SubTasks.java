@@ -24,6 +24,8 @@ import com.twitter.heron.api.generated.TopologyAPI;
 import com.twitter.heron.api.grouping.IReduce;
 import com.twitter.heron.api.serializer.IPluggableSerializer;
 import com.twitter.heron.common.basics.Pair;
+import com.twitter.heron.common.basics.SingletonRegistry;
+import com.twitter.heron.common.config.SystemConfig;
 import com.twitter.heron.common.utils.metrics.BoltMetrics;
 import com.twitter.heron.common.utils.misc.CollectiveBinaryTreeHelper;
 import com.twitter.heron.common.utils.misc.PhysicalPlanHelper;
@@ -38,12 +40,19 @@ public class SubTasks {
   private Map<String, SubTask> streamIdToSubTaskMap = new HashMap<>();
   protected PhysicalPlanHelper helper;
   protected final SubTaskOutputCollector subTaskOutputCollector;
+  private final SystemConfig systemConfig;
+  private int interNodeDegree;
+  private int intraNodeDegree;
 
   public SubTasks(PhysicalPlanHelper helper, IPluggableSerializer serializer,
                   OutgoingTupleCollection outputter, BoltMetrics boltMetrics) {
     this.helper = helper;
     subTaskOutputCollector = new SubTaskOutputCollector(serializer, helper,
         outputter, boltMetrics, this);
+    this.systemConfig =
+        (SystemConfig) SingletonRegistry.INSTANCE.getSingleton(SystemConfig.HERON_SYSTEM_CONFIG);
+    interNodeDegree = systemConfig.getCollectiveBinaryTreeInterNodeDegree();
+    intraNodeDegree = systemConfig.getCollectiveBinaryTreeIntraNodeDegree();
   }
 
   public void start() {
@@ -75,8 +84,8 @@ public class SubTasks {
     List<Integer> incomingTasks = new ArrayList<>();
     List<Integer> destTask = new ArrayList<>();
 
-    CollectiveBinaryTreeHelper collectiveHelper = new CollectiveBinaryTreeHelper(helper, 2, 2,
-        TopologyAPI.Grouping.REDUCE);
+    CollectiveBinaryTreeHelper collectiveHelper = new CollectiveBinaryTreeHelper(helper,
+        intraNodeDegree, interNodeDegree, TopologyAPI.Grouping.REDUCE);
     Map<TopologyAPI.StreamId, List<Pair<Integer, Integer>>> table = collectiveHelper.getRoutingTables();
     List<Pair<Integer, Integer>> routingTable = table.get(stream);
     if (routingTable == null) {

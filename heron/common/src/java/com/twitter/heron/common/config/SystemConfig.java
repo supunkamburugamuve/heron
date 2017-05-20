@@ -65,6 +65,14 @@ public final class SystemConfig {
     return getLong(SystemConfigKey.INSTANCE_FORCE_EXIT_TIMEOUT_MS);
   }
 
+  public int getCollectiveBinaryTreeInterNodeDegree() {
+    return getInteger(SystemConfigKey.COLLECTIVE_BINARY_TREE_INTER_NODE_DEGREE);
+  }
+
+  public int getCollectiveBinaryTreeIntraNodeDegree() {
+    return getInteger(SystemConfigKey.COLLECTIVE_BINARY_TREE_INTRA_NODE_DEGREE);
+  }
+
   public int getInstanceStateCheckIntervalSec() {
     return getInteger(SystemConfigKey.INSTANCE_STATE_CHECK_INTERVAL_SEC);
   }
