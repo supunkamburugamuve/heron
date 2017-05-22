@@ -51,27 +51,28 @@ TupleCache::~TupleCache() {
 
 sp_int64 TupleCache::add_data_tuple(sp_int32 _task_id, const proto::api::StreamId& _streamid,
                                     proto::system::HeronDataTuple* _tuple) {
-  if (total_size_ >= drain_threshold_bytes_) drain_impl();
   TupleList* l = get(_task_id);
-  return l->add_data_tuple(_streamid, _tuple, &total_size_, &tuples_cache_max_tuple_size_);
+  sp_int64 r = l->add_data_tuple(_streamid, _tuple, &total_size_, &tuples_cache_max_tuple_size_);
+  if (total_size_ >= drain_threshold_bytes_) drain_impl();
+  return r;
 }
 
 void TupleCache::add_ack_tuple(sp_int32 _task_id, const proto::system::AckTuple& _tuple) {
-  if (total_size_ >= drain_threshold_bytes_) drain_impl();
   TupleList* l = get(_task_id);
-  return l->add_ack_tuple(_tuple, &total_size_);
+  l->add_ack_tuple(_tuple, &total_size_);
+  if (total_size_ >= drain_threshold_bytes_) drain_impl();
 }
 
 void TupleCache::add_fail_tuple(sp_int32 _task_id, const proto::system::AckTuple& _tuple) {
-  if (total_size_ >= drain_threshold_bytes_) drain_impl();
   TupleList* l = get(_task_id);
-  return l->add_fail_tuple(_tuple, &total_size_);
+  l->add_fail_tuple(_tuple, &total_size_);
+  if (total_size_ >= drain_threshold_bytes_) drain_impl();
 }
 
 void TupleCache::add_emit_tuple(sp_int32 _task_id, const proto::system::AckTuple& _tuple) {
-  if (total_size_ >= drain_threshold_bytes_) drain_impl();
   TupleList* l = get(_task_id);
-  return l->add_emit_tuple(_tuple, &total_size_);
+  l->add_emit_tuple(_tuple, &total_size_);
+  if (total_size_ >= drain_threshold_bytes_) drain_impl();
 }
 
 TupleCache::TupleList* TupleCache::get(sp_int32 _task_id) {
