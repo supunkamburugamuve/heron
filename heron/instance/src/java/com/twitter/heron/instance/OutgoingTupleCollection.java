@@ -77,16 +77,22 @@ public class OutgoingTupleCollection {
       String streamId,
       HeronTuples.HeronDataTuple.Builder newTuple,
       long tupleSizeInBytes) {
-    if (currentDataTuple == null
-        || !currentDataTuple.getStream().getId().equals(streamId)
-        || currentDataTuple.getTuplesCount() >= dataTupleSetCapacity
-        || currentDataTupleSizeInBytes >= maxDataTupleSizeInBytes) {
+    if (currentDataTuple == null) {
+      initNewDataTuple(streamId);
+    } else if (!currentDataTuple.getStream().getId().equals(streamId) ) {
+      flushRemaining();
+
       initNewDataTuple(streamId);
     }
-    currentDataTuple.addTuples(newTuple);
 
+    currentDataTuple.addTuples(newTuple);
     currentDataTupleSizeInBytes += tupleSizeInBytes;
     totalDataEmittedInBytes += tupleSizeInBytes;
+
+    if (currentDataTuple.getTuplesCount() >= dataTupleSetCapacity
+        || currentDataTupleSizeInBytes >= maxDataTupleSizeInBytes) {
+      flushRemaining();
+    }
   }
 
   public void addAckTuple(HeronTuples.AckTuple.Builder newTuple, long tupleSizeInBytes) {
@@ -114,7 +120,6 @@ public class OutgoingTupleCollection {
   }
 
   private void initNewDataTuple(String streamId) {
-    flushRemaining();
 
     // Reset the set for data tuple
     currentDataTupleSizeInBytes = 0;
