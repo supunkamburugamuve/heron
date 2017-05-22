@@ -170,10 +170,10 @@ public class CollectiveBinaryTreeHelper {
       return null;
     }
 
-    if (interNodeDegree <= intraNodeDegree) {
-      LOG.log(Level.WARNING, "Increasing inter node degree by 64: " + interNodeDegree);
-      interNodeDegree = intraNodeDegree + 2;
-    }
+//    if (interNodeDegree <= intraNodeDegree) {
+//      LOG.log(Level.WARNING, "Increasing inter node degree by 64: " + interNodeDegree);
+//      interNodeDegree = intraNodeDegree + 2;
+//    }
 
     // sort the list
     Collections.sort(stmgrs);
@@ -188,8 +188,10 @@ public class CollectiveBinaryTreeHelper {
 
     TreeNode current = queue.poll();
     int i = 1;
+    int currentInterNodeDegree = current.children.size() + interNodeDegree;
+
     while (i < stmgrs.size()) {
-      if (current.children.size() < interNodeDegree) {
+      if (current.children.size() < currentInterNodeDegree) {
         TreeNode e = buildIntraNodeTree(stmgrs.get(i), id);
         if (e != null) {
           current.children.add(e);
@@ -201,6 +203,7 @@ public class CollectiveBinaryTreeHelper {
         i++;
       } else {
         current = queue.poll();
+        currentInterNodeDegree = current.children.size() + interNodeDegree;
       }
     }
     return root;
