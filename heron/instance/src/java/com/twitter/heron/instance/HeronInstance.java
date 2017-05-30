@@ -120,8 +120,8 @@ public class HeronInstance {
     this.gateway =
         new Gateway(topologyName, topologyId, instance, streamPort, metricsPort,
             gatewayLooper, inStreamQueue, outStreamQueue, inControlQueue, outMetricsQueues);
-    this.slave = new Slave(slaveLooper, inStreamQueue, outStreamQueue,
-        inControlQueue, slaveMetricsOut);
+    this.slave = new Slave(gateway, slaveLooper, gatewayLooper, inStreamQueue, outStreamQueue,
+        inControlQueue, slaveMetricsOut, instance);
 
     // New the ThreadPool and register it inside the SingletonRegistry
     threadsPool = Executors.newFixedThreadPool(NUM_THREADS);

@@ -23,6 +23,7 @@ import java.util.logging.Logger;
 import com.twitter.heron.api.generated.TopologyAPI;
 import com.twitter.heron.api.grouping.IReduce;
 import com.twitter.heron.api.serializer.IPluggableSerializer;
+import com.twitter.heron.common.basics.Communicator;
 import com.twitter.heron.common.basics.Pair;
 import com.twitter.heron.common.basics.SingletonRegistry;
 import com.twitter.heron.common.config.SystemConfig;
@@ -31,6 +32,7 @@ import com.twitter.heron.common.utils.misc.CollectiveBinaryTreeHelper;
 import com.twitter.heron.common.utils.misc.PhysicalPlanHelper;
 import com.twitter.heron.common.utils.tuple.TupleImpl;
 import com.twitter.heron.instance.OutgoingTupleCollection;
+import com.twitter.heron.proto.system.HeronTuples;
 
 public class SubTasks {
   private static Logger LOG = Logger.getLogger(SubTasks.class.getName());
@@ -45,10 +47,12 @@ public class SubTasks {
   private int intraNodeDegree;
 
   public SubTasks(PhysicalPlanHelper helper, IPluggableSerializer serializer,
-                  OutgoingTupleCollection outputter, BoltMetrics boltMetrics) {
+                  OutgoingTupleCollection outputter, BoltMetrics boltMetrics,
+                  Communicator<HeronTuples.HeronTupleSet> streamInQueue,
+                  Map<Integer, OutgoingTupleCollection> instanceOutPutters) {
     this.helper = helper;
     subTaskOutputCollector = new SubTaskOutputCollector(serializer, helper,
-        outputter, boltMetrics, this);
+        outputter, boltMetrics, this, streamInQueue, instanceOutPutters);
     this.systemConfig =
         (SystemConfig) SingletonRegistry.INSTANCE.getSingleton(SystemConfig.HERON_SYSTEM_CONFIG);
     interNodeDegree = systemConfig.getCollectiveBinaryTreeInterNodeDegree();

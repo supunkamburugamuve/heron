@@ -16,6 +16,7 @@ package com.twitter.heron.simulator.instance;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -40,8 +41,9 @@ public class BoltInstance
   public BoltInstance(PhysicalPlanHelper helper,
                       Communicator<HeronTuples.HeronTupleSet> streamInQueue,
                       Communicator<HeronTuples.HeronTupleSet> streamOutQueue,
+                      Map<Integer, Communicator<HeronTuples.HeronTupleSet>> instanceOutQueues,
                       SlaveLooper looper) {
-    super(helper, streamInQueue, streamOutQueue, looper);
+    super(helper, streamInQueue, streamOutQueue, instanceOutQueues, looper);
     SystemConfig systemConfig =
         (SystemConfig) SingletonRegistry.INSTANCE.getSingleton(SystemConfig.HERON_SYSTEM_CONFIG);
 

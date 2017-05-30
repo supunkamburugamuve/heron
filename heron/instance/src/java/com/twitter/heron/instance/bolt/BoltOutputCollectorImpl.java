@@ -26,8 +26,11 @@ import com.google.protobuf.ByteString;
 
 import com.twitter.heron.api.Config;
 import com.twitter.heron.api.bolt.IOutputCollector;
+import com.twitter.heron.api.bolt.OutputCollector;
+import com.twitter.heron.api.generated.TopologyAPI;
 import com.twitter.heron.api.serializer.IPluggableSerializer;
 import com.twitter.heron.api.tuple.Tuple;
+import com.twitter.heron.common.basics.Communicator;
 import com.twitter.heron.common.utils.metrics.BoltMetrics;
 import com.twitter.heron.common.utils.misc.PhysicalPlanHelper;
 import com.twitter.heron.common.utils.tuple.TupleImpl;
@@ -58,6 +61,8 @@ public class BoltOutputCollectorImpl implements IOutputCollector {
 
   protected final IPluggableSerializer serializer;
   protected final OutgoingTupleCollection outputter;
+  protected final Map<Integer, OutgoingTupleCollection> instanceOutPutters;
+  private final Communicator<HeronTuples.HeronTupleSet> streamInQueue;
 
   // Reference to update the bolt metrics
   protected final BoltMetrics boltMetrics;
@@ -70,12 +75,15 @@ public class BoltOutputCollectorImpl implements IOutputCollector {
                                  PhysicalPlanHelper helper,
                                  OutgoingTupleCollection outputter,
                                  BoltMetrics boltMetrics,
-                                 SubTasks subTasks) {
+                                 SubTasks subTasks,
+                                 Communicator<HeronTuples.HeronTupleSet> streamInQueue,
+                                 Map<Integer, OutgoingTupleCollection> instanceOutPutters) {
 
     if (helper.getMyBolt() == null) {
       throw new RuntimeException(helper.getMyTaskId() + " is not a bolt ");
     }
-
+    this.instanceOutPutters = instanceOutPutters;
+    this.streamInQueue = streamInQueue;
     this.serializer = serializer;
     this.boltMetrics = boltMetrics;
     this.subTasks = subTasks;
@@ -147,6 +155,9 @@ public class BoltOutputCollectorImpl implements IOutputCollector {
   // Flush the tuples to next stage
   public void sendOutTuples() {
     outputter.sendOutTuples();
+    for (OutgoingTupleCollection out : instanceOutPutters.values()) {
+      out.sendOutTuples();
+    }
   }
 
   // Clean the internal state of BoltOutputCollectorImpl
@@ -218,8 +229,39 @@ public class BoltOutputCollectorImpl implements IOutputCollector {
 
     long latency = System.nanoTime() - startTime;
     boltMetrics.serializeDataTuple(streamId, latency);
+    boolean tupleSent = false;
     // submit to outputter
-    outputter.addDataTuple(streamId, bldr, tupleSizeInBytes);
+    if (bldr.getSubTaskDest()) {
+      List<Integer> destTaskIds = bldr.getDestTaskIdsList();
+      for (Integer t : destTaskIds) {
+        if (instanceOutPutters.containsKey(t)) {
+          // LOG.info("Tuple sent to instance: " + t);
+          instanceOutPutters.get(t).addDataTuple(streamId, bldr, tupleSizeInBytes);
+          tupleSent = true;
+        } else if (t == helper.getMyTaskId()) {
+          // LOG.info("Tuple sent to self: " + t);
+          TopologyAPI.StreamId.Builder sbldr = TopologyAPI.StreamId.newBuilder();
+          sbldr.setId(streamId);
+          sbldr.setComponentName(helper.getMyComponent());
+          HeronTuples.HeronDataTupleSet.Builder currentDataTuple =
+              HeronTuples.HeronDataTupleSet.newBuilder();
+          currentDataTuple.setStream(sbldr);
+          currentDataTuple.addTuples(bldr);
+
+          HeronTuples.HeronTupleSet.Builder tupleset = HeronTuples.HeronTupleSet.newBuilder();
+          tupleset.setData(currentDataTuple);
+          streamInQueue.offer(tupleset.build());
+          tupleSent = true;
+        }
+      }
+    }
+
+    if (!tupleSent) {
+      // LOG.log(Level.INFO, "Sending tuple to stream manager: " + streamId);
+      outputter.addDataTuple(streamId, bldr, tupleSizeInBytes);
+    } /*else {
+      LOG.log(Level.INFO, "Tuple not sent to stream manager");
+    }*/
 
     // Update metrics
     boltMetrics.emittedTuple(streamId);

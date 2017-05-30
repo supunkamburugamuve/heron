@@ -226,6 +226,7 @@ public class StreamManagerClient extends HeronClient {
 
           gatewayMetrics.updateSentPacketsCount(1);
           gatewayMetrics.updateSentPacketsSize(tupleSet.getSerializedSize());
+//          LOG.log(Level.INFO, "Sending message to stream manager    ");
           sendMessage(tupleSet);
         }
       }
@@ -288,6 +289,7 @@ public class StreamManagerClient extends HeronClient {
     }
 
     HeronTuples.HeronTupleSet s = toFeed.build();
+//    LOG.log(Level.INFO, "Receiving message from stream manager");
     inStreamQueue.offer(s);
   }
 

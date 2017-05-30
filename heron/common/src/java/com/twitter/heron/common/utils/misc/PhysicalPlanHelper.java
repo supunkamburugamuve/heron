@@ -382,5 +382,16 @@ public class PhysicalPlanHelper {
   public boolean isCustomGroupingEmpty() {
     return customGrouper.isCustomGroupingEmpty();
   }
+
+  public List<PhysicalPlans.Instance> getInstanceForStmgr(String stmgr) {
+    List<PhysicalPlans.Instance> allInstances = pplan.getInstancesList();
+    List<PhysicalPlans.Instance> stmgrInstances = new ArrayList<>();
+    for (PhysicalPlans.Instance instance : allInstances) {
+      if (instance.getStmgrId().equals(stmgr)) {
+        stmgrInstances.add(instance);
+      }
+    }
+    return stmgrInstances;
+  }
 }
 

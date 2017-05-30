@@ -15,7 +15,9 @@
 package com.twitter.heron.instance.bolt;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -54,6 +56,7 @@ public class BoltInstance implements IInstance {
   protected final BoltMetrics boltMetrics;
   // The bolt will read Data tuples from streamInQueue
   private final Communicator<HeronTuples.HeronTupleSet> streamInQueue;
+  private Map<Integer, OutgoingTupleCollection> instanceOutPutters;
 
   private final SlaveLooper looper;
 
@@ -64,6 +67,7 @@ public class BoltInstance implements IInstance {
   public BoltInstance(PhysicalPlanHelper helper,
                       Communicator<HeronTuples.HeronTupleSet> streamInQueue,
                       Communicator<HeronTuples.HeronTupleSet> streamOutQueue,
+                      Map<Integer, Communicator<HeronTuples.HeronTupleSet>> instanceOutQueues,
                       SlaveLooper looper) {
     this.helper = helper;
     this.looper = looper;
@@ -99,8 +103,17 @@ public class BoltInstance implements IInstance {
     }
 
     outputter = new OutgoingTupleCollection(helper.getMyComponent(), streamOutQueue);
-    subTasks = new SubTasks(helper, serializer, outputter, boltMetrics);
-    collector = new BoltOutputCollectorImpl(serializer, helper, outputter, boltMetrics, subTasks);
+    instanceOutPutters = new HashMap<>();
+    for (Map.Entry<Integer, Communicator<HeronTuples.HeronTupleSet>> out :
+        instanceOutQueues.entrySet()) {
+      OutgoingTupleCollection outCollection =
+          new OutgoingTupleCollection(helper.getMyComponent(), out.getValue());
+      instanceOutPutters.put(out.getKey(), outCollection);
+    }
+    subTasks = new SubTasks(helper, serializer, outputter, boltMetrics,
+        streamInQueue, instanceOutPutters);
+    collector = new BoltOutputCollectorImpl(serializer, helper, outputter, boltMetrics,
+        subTasks, streamInQueue, instanceOutPutters);
   }
 
   @Override

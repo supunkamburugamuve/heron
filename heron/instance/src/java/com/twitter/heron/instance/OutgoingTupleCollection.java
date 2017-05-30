@@ -15,6 +15,8 @@
 package com.twitter.heron.instance;
 
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.twitter.heron.api.generated.TopologyAPI;
 import com.twitter.heron.common.basics.Communicator;
@@ -31,6 +33,7 @@ import com.twitter.heron.proto.system.HeronTuples;
  * In fact, when talking about to send out tuples, we mean we push them to the out queues.
  */
 public class OutgoingTupleCollection {
+  private static Logger LOG = Logger.getLogger(OutgoingTupleCollection.class.getName());
   protected final String componentName;
   // We have just one outQueue responsible for both control tuples and data tuples
   private final Communicator<HeronTuples.HeronTupleSet> outQueue;
@@ -49,7 +52,6 @@ public class OutgoingTupleCollection {
 
   private int dataTupleSetCapacity;
   private int controlTupleSetCapacity;
-  private Map<Integer, Integer> routingTable;
 
   public OutgoingTupleCollection(
       String componentName,
@@ -67,6 +69,8 @@ public class OutgoingTupleCollection {
     this.dataTupleSetCapacity = systemConfig.getInstanceSetDataTupleCapacity();
     this.maxDataTupleSizeInBytes = systemConfig.getInstanceSetDataTupleSizeBytes();
     this.controlTupleSetCapacity = systemConfig.getInstanceSetControlTupleCapacity();
+    LOG.log(Level.INFO, String.format("%d %d %d",
+        dataTupleSetCapacity, maxDataTupleSizeInBytes, controlTupleSetCapacity));
   }
 
   public void sendOutTuples() {
@@ -92,6 +96,8 @@ public class OutgoingTupleCollection {
     if (currentDataTuple.getTuplesCount() >= dataTupleSetCapacity
         || currentDataTupleSizeInBytes >= maxDataTupleSizeInBytes) {
       flushRemaining();
+    } else {
+      LOG.log(Level.INFO, "Add tuple, not flushing");
     }
   }
 
@@ -162,6 +168,8 @@ public class OutgoingTupleCollection {
 
   // Return true we could offer item to outQueue
   public boolean isOutQueuesAvailable() {
+//    LOG.log(Level.INFO, String.format("out avail %d %d",
+//        outQueue.size(), outQueue.getExpectedAvailableCapacity()));
     return outQueue.size() < outQueue.getExpectedAvailableCapacity();
   }
 

@@ -15,7 +15,9 @@
 package com.twitter.heron.instance;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import com.twitter.heron.common.basics.Communicator;
@@ -29,6 +31,8 @@ import com.twitter.heron.common.utils.metrics.JVMMetrics;
 import com.twitter.heron.common.utils.metrics.MetricsCollector;
 import com.twitter.heron.common.utils.misc.ThreadNames;
 import com.twitter.heron.metrics.GatewayMetrics;
+import com.twitter.heron.network.InstanceClient;
+import com.twitter.heron.network.InstanceServer;
 import com.twitter.heron.network.MetricsManagerClient;
 import com.twitter.heron.network.StreamManagerClient;
 import com.twitter.heron.proto.system.HeronTuples;
@@ -46,11 +50,14 @@ public class Gateway implements Runnable, AutoCloseable {
   // Some pre-defined value
   private static final String STREAM_MGR_HOST = "127.0.0.1";
   private static final String METRICS_MGR_HOST = "127.0.0.1";
+  private static final int INSTANCE_PORT = 10567;
 
   // MetricsManagerClient will communicate with Metrics Manager
   private final MetricsManagerClient metricsManagerClient;
   // StreamManagerClient will communicate with Stream Manager
   private final StreamManagerClient streamManagerClient;
+
+  private final InstanceServer instanceServer;
 
   private final NIOLooper gatewayLooper;
 
@@ -60,6 +67,17 @@ public class Gateway implements Runnable, AutoCloseable {
   private final GatewayMetrics gatewayMetrics;
 
   private final SystemConfig systemConfig;
+
+  private final Map<Integer, InstanceClient> instanceClients = new HashMap<>();
+
+  private final String topologyName;
+  private final String topologyId;
+  private HeronSocketOptions socketOptions;
+  private final PhysicalPlans.Instance instance;
+  private final Communicator<InstanceControlMsg> inControlQueue;
+  private final Communicator<HeronTuples.HeronTupleSet> inStreamQueue;
+  private Map<Integer, Communicator<HeronTuples.HeronTupleSet>> instanceOutCommunicators =
+      new HashMap<>();
 
   /**
    * Construct a Gateway basing on given arguments
@@ -73,7 +91,11 @@ public class Gateway implements Runnable, AutoCloseable {
       throws IOException {
     systemConfig =
         (SystemConfig) SingletonRegistry.INSTANCE.getSingleton(SystemConfig.HERON_SYSTEM_CONFIG);
-
+    this.topologyId = topologyId;
+    this.topologyName = topologyName;
+    this.instance = instance;
+    this.inControlQueue = inControlQueue;
+    this.inStreamQueue = inStreamQueue;
     // New the client
     this.gatewayLooper = gatewayLooper;
     this.gatewayMetricsCollector = new MetricsCollector(gatewayLooper, outMetricsQueues.get(0));
@@ -94,7 +116,7 @@ public class Gateway implements Runnable, AutoCloseable {
         systemConfig.getHeronMetricsMaxExceptionsPerMessageCount());
 
     // Initialize the corresponding 2 socket clients with corresponding socket options
-    HeronSocketOptions socketOptions = new HeronSocketOptions(
+    this.socketOptions = new HeronSocketOptions(
         systemConfig.getInstanceNetworkWriteBatchSizeBytes(),
         systemConfig.getInstanceNetworkWriteBatchTimeMs(),
         systemConfig.getInstanceNetworkReadBatchSizeBytes(),
@@ -109,6 +131,10 @@ public class Gateway implements Runnable, AutoCloseable {
             socketOptions, gatewayMetrics);
     this.metricsManagerClient = new MetricsManagerClient(gatewayLooper, METRICS_MGR_HOST,
         metricsPort, instance, outMetricsQueues, socketOptions, gatewayMetrics);
+
+    this.instanceServer = new InstanceServer(gatewayLooper, STREAM_MGR_HOST,
+        INSTANCE_PORT + instance.getInfo().getTaskId(),
+        socketOptions, inStreamQueue, inControlQueue);
 
     // Attach sample Runnable to gatewayMetricsCollector
     gatewayMetricsCollector.registerMetricSampleRunnable(jvmMetrics.getJVMSampleRunnable(),
@@ -138,6 +164,9 @@ public class Gateway implements Runnable, AutoCloseable {
       public void run() {
         inStreamQueue.updateExpectedAvailableCapacity();
         outStreamQueue.updateExpectedAvailableCapacity();
+        for (Communicator<HeronTuples.HeronTupleSet> s : instanceOutCommunicators.values()) {
+          s.updateExpectedAvailableCapacity();
+        }
         gatewayLooper.registerTimerEventInNanoSeconds(instanceTuningIntervalMs, this);
       }
     };
@@ -152,6 +181,7 @@ public class Gateway implements Runnable, AutoCloseable {
 
     streamManagerClient.start();
     metricsManagerClient.start();
+    instanceServer.start();
 
     gatewayLooper.loop();
   }
@@ -165,5 +195,17 @@ public class Gateway implements Runnable, AutoCloseable {
 
     this.metricsManagerClient.stop();
     this.streamManagerClient.stop();
+    this.instanceServer.stop();
+  }
+
+  public void addInstanceClient(PhysicalPlans.Instance myInstance, int destTaskId,
+                                Communicator<HeronTuples.HeronTupleSet> outStreamQueue) {
+    InstanceClient instanceClient = new InstanceClient(gatewayLooper,
+        STREAM_MGR_HOST, INSTANCE_PORT + destTaskId, topologyName,
+        topologyId, destTaskId, this.instance, socketOptions, inStreamQueue, outStreamQueue,
+        inControlQueue, gatewayMetrics);
+    instanceClient.start();
+    instanceClients.put(destTaskId, instanceClient);
+    instanceOutCommunicators.put(destTaskId, outStreamQueue);
   }
 }

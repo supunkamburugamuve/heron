@@ -16,9 +16,11 @@ package com.twitter.heron.instance.grouping;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import com.twitter.heron.api.serializer.IPluggableSerializer;
+import com.twitter.heron.common.basics.Communicator;
 import com.twitter.heron.common.utils.metrics.BoltMetrics;
 import com.twitter.heron.common.utils.misc.PhysicalPlanHelper;
 import com.twitter.heron.instance.OutgoingTupleCollection;
@@ -30,8 +32,10 @@ public class SubTaskOutputCollector extends BoltOutputCollectorImpl {
 
   public SubTaskOutputCollector(IPluggableSerializer serializer, PhysicalPlanHelper helper,
                                 OutgoingTupleCollection outputter,
-                                BoltMetrics boltMetrics, SubTasks subTasks) {
-    super(serializer, helper, outputter, boltMetrics, subTasks);
+                                BoltMetrics boltMetrics, SubTasks subTasks,
+                                Communicator<HeronTuples.HeronTupleSet> streamInQueue,
+                                Map<Integer, OutgoingTupleCollection> instanceOutPutters) {
+    super(serializer, helper, outputter, boltMetrics, subTasks, streamInQueue, instanceOutPutters);
   }
 
   @Override

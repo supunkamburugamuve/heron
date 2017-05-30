@@ -248,6 +248,7 @@ public class SpoutOutputCollectorImpl implements ISpoutOutputCollector {
     long latency = System.nanoTime() - startTime;
     spoutMetrics.serializeDataTuple(streamId, latency);
 
+    // LOG.log(Level.INFO, "Sending message to stmgr: " + streamId);
     // submit to outputter
     outputter.addDataTuple(streamId, bldr, tupleSizeInBytes);
     totalTuplesEmitted++;

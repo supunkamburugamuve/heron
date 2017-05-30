@@ -14,6 +14,8 @@
 
 package com.twitter.heron.simulator.executors;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -99,9 +101,10 @@ public class InstanceExecutor implements Runnable {
   }
 
   protected IInstance createInstance() {
+    Map<Integer, Communicator<HeronTuples.HeronTupleSet>> empty = new HashMap<>();
     return (physicalPlanHelper.getMySpout() != null)
         ? new SpoutInstance(physicalPlanHelper, streamInQueue, streamOutQueue, looper)
-        : new BoltInstance(physicalPlanHelper, streamInQueue, streamOutQueue, looper);
+        : new BoltInstance(physicalPlanHelper, streamInQueue, streamOutQueue, empty, looper);
   }
 
   protected PhysicalPlanHelper createPhysicalPlanHelper(PhysicalPlans.PhysicalPlan physicalPlan,
