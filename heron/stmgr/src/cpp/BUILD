@@ -32,6 +32,7 @@ cc_library(
         "//config:config-cxx",
         "//heron/proto:proto-cxx",
         "//heron/common/src/cpp/network:network-cxx",
+        ":util-cxx",
     ],
     linkstatic = 1,
 )
@@ -42,10 +43,12 @@ cc_library(
         "util/rotating-map.cpp",
         "util/tuple-cache.cpp",
         "util/xor-manager.cpp",
+        "util/collective-tree.cpp",
 
         "util/rotating-map.h",
         "util/tuple-cache.h",
         "util/xor-manager.h",
+        "util/collective-tree.h",
     ],
     copts = [
         "-Iheron",

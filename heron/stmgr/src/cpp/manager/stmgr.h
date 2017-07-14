@@ -90,7 +90,7 @@ class StMgr {
 
   void CleanupStreamConsumers();
   void PopulateStreamConsumers(
-      proto::api::Topology* _topology,
+      proto::system::PhysicalPlan* _pplan,
       const std::map<sp_string, std::vector<sp_int32> >& _component_to_task_ids);
   void PopulateXorManagers(
       const proto::api::Topology& _topology, sp_int32 _message_timeout,

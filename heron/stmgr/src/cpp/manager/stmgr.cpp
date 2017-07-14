@@ -429,7 +429,7 @@ void StMgr::NewPhysicalPlan(proto::system::PhysicalPlan* _pplan) {
     component_to_task_ids[component_name].push_back(task_id);
   }
   if (!pplan_) {
-    PopulateStreamConsumers(_pplan->mutable_topology(), component_to_task_ids);
+    PopulateStreamConsumers(_pplan, component_to_task_ids);
     PopulateXorManagers(_pplan->topology(), ExtractTopologyTimeout(_pplan->topology()),
                         component_to_task_ids);
   }
@@ -463,8 +463,10 @@ sp_int32 StMgr::ExtractTopologyTimeout(const proto::api::Topology& _topology) {
 }
 
 void StMgr::PopulateStreamConsumers(
-    proto::api::Topology* _topology,
+    proto::system::PhysicalPlan* _pplan,
     const std::map<sp_string, std::vector<sp_int32> >& _component_to_task_ids) {
+
+  proto::api::Topology* _topology = _pplan->mutable_topology();
   // First get a map of <component, stream> -> Schema
   std::map<std::pair<sp_string, sp_string>, proto::api::StreamSchema*> schema_map;
   for (sp_int32 i = 0; i < _topology->spouts_size(); ++i) {
@@ -495,9 +497,11 @@ void StMgr::PopulateStreamConsumers(
       CHECK(iter != _component_to_task_ids.end());
       const std::vector<sp_int32>& component_task_ids = iter->second;
       if (stream_consumers_.find(p) == stream_consumers_.end()) {
-        stream_consumers_[p] = new StreamConsumers(is, *schema, component_task_ids);
+        stream_consumers_[p] = new StreamConsumers(_pplan, stmgr_id_, component_name, is, *schema,
+                                                   component_task_ids);
       } else {
-        stream_consumers_[p]->NewConsumer(is, *schema, component_task_ids);
+        stream_consumers_[p]->NewConsumer(_pplan, stmgr_id_, component_name,
+                                           is, *schema, component_task_ids);
       }
     }
   }

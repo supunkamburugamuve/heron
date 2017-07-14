@@ -19,6 +19,7 @@
 #include <iostream>
 #include <list>
 #include <vector>
+#include <string>
 #include "grouping/shuffle-grouping.h"
 #include "grouping/fields-grouping.h"
 #include "grouping/all-grouping.h"
@@ -38,7 +39,9 @@ Grouping::Grouping(const std::vector<sp_int32>& _task_ids) : task_ids_(_task_ids
 
 Grouping::~Grouping() {}
 
-Grouping* Grouping::Create(proto::api::Grouping grouping_, const proto::api::InputStream& _is,
+Grouping* Grouping::Create(proto::system::PhysicalPlan* _pplan, std::string _stmgr,
+                           std::string _component, proto::api::Grouping grouping_,
+                           const proto::api::InputStream& _is,
                            const proto::api::StreamSchema& _schema,
                            const std::vector<sp_int32>& _task_ids) {
   switch (grouping_) {
@@ -53,7 +56,8 @@ Grouping* Grouping::Create(proto::api::Grouping grouping_, const proto::api::Inp
     }
 
     case proto::api::ALL: {
-      return new AllGrouping(_task_ids);
+      LOG(INFO) << "ALL Grouping";
+      return new AllGrouping(&_is, _pplan, _component, _stmgr, _task_ids);
       break;
     }
 

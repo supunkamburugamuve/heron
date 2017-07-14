@@ -73,6 +73,14 @@ public final class SystemConfig {
     return getInteger(SystemConfigKey.COLLECTIVE_BINARY_TREE_INTRA_NODE_DEGREE);
   }
 
+  public int getCollectiveBroadcastTreeInterNodeDegree() {
+    return getInteger(SystemConfigKey.COLLECTIVE_BROADCAST_TREE_INTER_NODE_DEGREE);
+  }
+
+  public int getCollectiveBroadcastTreeIntraNodeDegree() {
+    return getInteger(SystemConfigKey.COLLECTIVE_BROADCAST_TREE_INTRA_NODE_DEGREE);
+  }
+
   public int getInstanceStateCheckIntervalSec() {
     return getInteger(SystemConfigKey.INSTANCE_STATE_CHECK_INTERVAL_SEC);
   }

@@ -19,18 +19,41 @@
 #include <iostream>
 #include <list>
 #include <vector>
+#include <string>
 #include "grouping/grouping.h"
 #include "proto/messages.h"
 #include "basics/basics.h"
 #include "errors/errors.h"
 #include "threads/threads.h"
 #include "network/network.h"
-
+#include "util/collective-tree.h"
+#include "config/heron-internals-config-reader.h"
 
 namespace heron {
 namespace stmgr {
 
-AllGrouping::AllGrouping(const std::vector<sp_int32>& _task_ids) : Grouping(_task_ids) {}
+AllGrouping::AllGrouping(const proto::api::InputStream* _is, proto::system::PhysicalPlan* _pplan,
+                         std::string _component, std::string _stmgr,
+                         const std::vector<sp_int32>& _task_ids) :
+                         Grouping(_task_ids), pplan_(_pplan) {
+  int inter_node_tasks = config::HeronInternalsConfigReader::Instance()->
+                                  GetHeronCollectiveBroadcastTreeInterNodeDegree();
+  int intra_node_tasks = config::HeronInternalsConfigReader::Instance()->
+                                  GetHeronCollectiveBroadcastTreeIntraNodeDegree();
+  CollectiveTree tree(pplan_, _is, _stmgr, _component, intra_node_tasks, inter_node_tasks);
+  std::string s = "";
+  for (size_t i = 0; i < task_ids_.size(); i++) {
+    s += std::to_string(task_ids_.at(i)) + " ";
+  }
+  LOG(INFO) << "Tasks before: " << s;
+  task_ids_.clear();
+  tree.getRoutingTables(task_ids_);
+  s = "";
+  for (size_t i = 0; i < task_ids_.size(); i++) {
+    s += std::to_string(task_ids_.at(i)) + " ";
+  }
+  LOG(INFO) << "Tasks after: " << s;
+}
 
 AllGrouping::~AllGrouping() {}
 

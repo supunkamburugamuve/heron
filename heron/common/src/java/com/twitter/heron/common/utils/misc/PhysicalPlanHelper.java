@@ -379,6 +379,26 @@ public class PhysicalPlanHelper {
     return reduceGroupingStreams;
   }
 
+  public List<TopologyAPI.InputStream> getOriginCollectiveGroupingStream(TopologyAPI.Grouping grouping) {
+    List<TopologyAPI.InputStream> reduceGroupingStreams = new ArrayList<>();
+    // We will build the structure of the topologyBlr - a graph directed from children to parents,
+    // by looking only on bolts, since spout will not have parents
+    for (TopologyAPI.Bolt bolt : pplan.getTopology().getBoltsList()) {
+      // To get the parent's component to construct a graph of topology structure
+      for (TopologyAPI.InputStream inputStream : bolt.getInputsList()) {
+        String component = bolt.getComp().getName();
+        // We have a reduce grouping for this component
+        LOG.info(String.format("Input stream: %s %s %s %s",
+            inputStream.getStream().getId(),
+            inputStream.getStream().getComponentName(), myComponent, inputStream.getGtype()));
+        if (inputStream.getGtype() == grouping && component.equals(myComponent)) {
+          reduceGroupingStreams.add(inputStream);
+        }
+      }
+    }
+    return reduceGroupingStreams;
+  }
+
   public boolean isCustomGroupingEmpty() {
     return customGrouper.isCustomGroupingEmpty();
   }

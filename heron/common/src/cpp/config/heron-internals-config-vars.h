@@ -170,6 +170,10 @@ class HeronInternalsConfigVars {
 
   // Low water mark on the num in MB that can be left outstanding on a connection
   static const sp_string HERON_STREAMMGR_NETWORK_BACKPRESSURE_LOWWATERMARK_MB;
+
+  static const sp_string HERON_COLLECTIVE_BROADCAST_TREE_INTER_NODE_DEGREE;
+
+  static const sp_string HERON_COLLECTIVE_BROADCAST_TREE_INTRA_NODE_DEGREE;
 };
 }  // namespace config
 }  // namespace heron

@@ -14,7 +14,6 @@
 
 package com.twitter.heron.instance;
 
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -101,6 +100,30 @@ public class OutgoingTupleCollection {
     }
   }
 
+  public void copyDataTuple(
+      TopologyAPI.StreamId streamId,
+      HeronTuples.HeronDataTuple.Builder newTuple,
+      long tupleSizeInBytes) {
+    if (currentDataTuple == null) {
+      initNewDataTuple(streamId);
+    } else if (!currentDataTuple.getStream().getId().equals(streamId) ) {
+      flushRemaining();
+
+      initNewDataTuple(streamId);
+    }
+
+    currentDataTuple.addTuples(newTuple);
+    currentDataTupleSizeInBytes += tupleSizeInBytes;
+    totalDataEmittedInBytes += tupleSizeInBytes;
+
+    if (currentDataTuple.getTuplesCount() >= dataTupleSetCapacity
+        || currentDataTupleSizeInBytes >= maxDataTupleSizeInBytes) {
+      flushRemaining();
+    } else {
+      LOG.log(Level.INFO, "Add tuple, not flushing");
+    }
+  }
+
   public void addAckTuple(HeronTuples.AckTuple.Builder newTuple, long tupleSizeInBytes) {
     if (currentControlTuple == null
         || currentControlTuple.getFailsCount() > 0
@@ -133,6 +156,18 @@ public class OutgoingTupleCollection {
     TopologyAPI.StreamId.Builder sbldr = TopologyAPI.StreamId.newBuilder();
     sbldr.setId(streamId);
     sbldr.setComponentName(componentName);
+    currentDataTuple = HeronTuples.HeronDataTupleSet.newBuilder();
+    currentDataTuple.setStream(sbldr);
+  }
+
+  private void initNewDataTuple(TopologyAPI.StreamId streamId) {
+
+    // Reset the set for data tuple
+    currentDataTupleSizeInBytes = 0;
+
+    TopologyAPI.StreamId.Builder sbldr = TopologyAPI.StreamId.newBuilder();
+    sbldr.setId(streamId.getId());
+    sbldr.setComponentName(streamId.getComponentName());
     currentDataTuple = HeronTuples.HeronDataTupleSet.newBuilder();
     currentDataTuple.setStream(sbldr);
   }

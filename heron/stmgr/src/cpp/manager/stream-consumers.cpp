@@ -19,6 +19,7 @@
 #include <iostream>
 #include <list>
 #include <vector>
+#include <string>
 #include "grouping/grouping.h"
 #include "proto/messages.h"
 #include "basics/basics.h"
@@ -29,10 +30,13 @@
 namespace heron {
 namespace stmgr {
 
-StreamConsumers::StreamConsumers(const proto::api::InputStream& _is,
+StreamConsumers::StreamConsumers(proto::system::PhysicalPlan* _pplan, std::string _stmgr,
+                                 std::string _component,
+                                 const proto::api::InputStream& _is,
                                  const proto::api::StreamSchema& _schema,
                                  const std::vector<sp_int32>& _task_ids) {
-  consumers_.push_back(Grouping::Create(_is.gtype(), _is, _schema, _task_ids));
+  consumers_.push_back(Grouping::Create(_pplan, _stmgr, _component,
+                                        _is.gtype(), _is, _schema, _task_ids));
 }
 
 StreamConsumers::~StreamConsumers() {
@@ -43,10 +47,13 @@ StreamConsumers::~StreamConsumers() {
   }
 }
 
-void StreamConsumers::NewConsumer(const proto::api::InputStream& _is,
+void StreamConsumers::NewConsumer(proto::system::PhysicalPlan* _pplan, std::string _stmgr,
+                                  std::string _component,
+                                  const proto::api::InputStream& _is,
                                   const proto::api::StreamSchema& _schema,
                                   const std::vector<sp_int32>& _task_ids) {
-  consumers_.push_back(Grouping::Create(_is.gtype(), _is, _schema, _task_ids));
+  consumers_.push_back(Grouping::Create(_pplan, _stmgr, _component,
+                                         _is.gtype(), _is, _schema, _task_ids));
 }
 
 void StreamConsumers::GetListToSend(const proto::system::HeronDataTuple& _tuple,

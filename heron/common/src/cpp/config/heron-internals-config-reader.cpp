@@ -246,5 +246,16 @@ sp_int32 HeronInternalsConfigReader::GetHeronStreammgrNetworkBackpressureLowwate
   return config_[HeronInternalsConfigVars::HERON_STREAMMGR_NETWORK_BACKPRESSURE_LOWWATERMARK_MB]
       .as<int>();
 }
+
+sp_int32 HeronInternalsConfigReader::GetHeronCollectiveBroadcastTreeInterNodeDegree() {
+  return config_[HeronInternalsConfigVars::HERON_COLLECTIVE_BROADCAST_TREE_INTER_NODE_DEGREE]
+      .as<int>();
+}
+
+sp_int32 HeronInternalsConfigReader::GetHeronCollectiveBroadcastTreeIntraNodeDegree() {
+  return config_[HeronInternalsConfigVars::HERON_COLLECTIVE_BROADCAST_TREE_INTRA_NODE_DEGREE]
+      .as<int>();
+}
+
 }  // namespace config
 }  // namespace heron

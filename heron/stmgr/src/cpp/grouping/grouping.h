@@ -18,6 +18,7 @@
 #define SRC_CPP_SVCS_STMGR_SRC_GROUPING_GROUPING_H_
 
 #include <vector>
+#include <string>
 #include "proto/messages.h"
 #include "basics/basics.h"
 
@@ -29,9 +30,11 @@ class Grouping {
   explicit Grouping(const std::vector<sp_int32>& _task_ids);
   virtual ~Grouping();
 
-  static Grouping* Create(proto::api::Grouping grouping_, const proto::api::InputStream& _is,
-                          const proto::api::StreamSchema& _schema,
-                          const std::vector<sp_int32>& _task_ids);
+  static Grouping* Create(proto::system::PhysicalPlan* _pplan, std::string _stmgr,
+                           std::string _component, proto::api::Grouping grouping_,
+                           const proto::api::InputStream& _is,
+                           const proto::api::StreamSchema& _schema,
+                           const std::vector<sp_int32>& _task_ids);
 
   virtual void GetListToSend(const proto::system::HeronDataTuple& _tuple,
                              std::vector<sp_int32>& _return) = 0;

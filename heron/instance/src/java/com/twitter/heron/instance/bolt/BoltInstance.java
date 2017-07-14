@@ -21,6 +21,8 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.google.protobuf.ByteString;
+
 import com.twitter.heron.api.Config;
 import com.twitter.heron.api.bolt.IBolt;
 import com.twitter.heron.api.bolt.OutputCollector;
@@ -31,11 +33,13 @@ import com.twitter.heron.api.topology.IUpdatable;
 import com.twitter.heron.api.utils.Utils;
 import com.twitter.heron.common.basics.Communicator;
 import com.twitter.heron.common.basics.Constants;
+import com.twitter.heron.common.basics.Pair;
 import com.twitter.heron.common.basics.SingletonRegistry;
 import com.twitter.heron.common.basics.SlaveLooper;
 import com.twitter.heron.common.basics.TypeUtils;
 import com.twitter.heron.common.config.SystemConfig;
 import com.twitter.heron.common.utils.metrics.BoltMetrics;
+import com.twitter.heron.common.utils.misc.BroadcastBinaryTree;
 import com.twitter.heron.common.utils.misc.PhysicalPlanHelper;
 import com.twitter.heron.common.utils.misc.SerializeDeSerializeHelper;
 import com.twitter.heron.common.utils.topology.TopologyContextImpl;
@@ -63,6 +67,7 @@ public class BoltInstance implements IInstance {
   private final SystemConfig systemConfig;
   private OutgoingTupleCollection outputter;
   protected SubTasks subTasks;
+  private Map<TopologyAPI.StreamId, List<Pair<Integer, Integer>>> broadCastRoutingTable;
 
   public BoltInstance(PhysicalPlanHelper helper,
                       Communicator<HeronTuples.HeronTupleSet> streamInQueue,
@@ -112,8 +117,27 @@ public class BoltInstance implements IInstance {
     }
     subTasks = new SubTasks(helper, serializer, outputter, boltMetrics,
         streamInQueue, instanceOutPutters);
+    initializeBroadcast();
     collector = new BoltOutputCollectorImpl(serializer, helper, outputter, boltMetrics,
         subTasks, streamInQueue, instanceOutPutters);
+  }
+
+  private void initializeBroadcast() {
+    int interNodeDegree = systemConfig.getCollectiveBroadcastTreeInterNodeDegree();
+    int intraNodeDegree = systemConfig.getCollectiveBroadcastTreeIntraNodeDegree();
+
+    BroadcastBinaryTree broadcastBinaryTree = new BroadcastBinaryTree(helper, intraNodeDegree,
+        interNodeDegree, TopologyAPI.Grouping.ALL);
+    broadCastRoutingTable = broadcastBinaryTree.getRoutingTables();
+    String s = "";
+    for (Map.Entry<TopologyAPI.StreamId, List<Pair<Integer, Integer>>> entry : broadCastRoutingTable.entrySet()) {
+      s += entry.getKey().getId();
+      for (Pair<Integer, Integer> p : entry.getValue()) {
+        s += "(" + p.first + ", " + p.second+ "), ";
+      }
+      s += "\n";
+    }
+    LOG.log(Level.INFO, "Broadcast: " + s);
   }
 
   @Override
@@ -222,6 +246,8 @@ public class BoltInstance implements IInstance {
       // We would reuse the System.nanoTime()
       long currentTime = startOfCycle;
       for (HeronTuples.HeronDataTuple dataTuple : tuples.getData().getTuplesList()) {
+        // if we need to broadcast
+        handleBroadcast(stream, dataTuple);
         // Create the value list and fill the value
         List<Object> values = new ArrayList<>(nValues);
         for (int i = 0; i < nValues; i++) {
@@ -258,6 +284,51 @@ public class BoltInstance implements IInstance {
       // To avoid spending too much time
       if (currentTime - startOfCycle - instanceExecuteBatchTime > 0) {
         break;
+      }
+    }
+  }
+
+  private void handleBroadcast(TopologyAPI.StreamId stream, HeronTuples.HeronDataTuple dataTuple) {
+    if (broadCastRoutingTable.containsKey(stream)) {
+      // LOG.log(Level.INFO, "Broadcasting to stream");
+      List<Pair<Integer, Integer>> routs = broadCastRoutingTable.get(stream);
+      if (routs.size() != 0) {
+        for (Pair<Integer, Integer> r : routs) {
+          if (r.first == helper.getMyTaskId() && r.second != helper.getMyTaskId()) {
+            OutgoingTupleCollection t = instanceOutPutters.get(r.second);
+//            LOG.log(Level.INFO, "Sending to task: " + r.second + " " +
+//                " stream: " + stream.getId());
+
+            HeronTuples.HeronDataTuple.Builder newTuple = dataTuple.toBuilder();
+            newTuple.setKey(dataTuple.getKey());
+            for (HeronTuples.RootId id : dataTuple.getRootsList()) {
+              HeronTuples.RootId.Builder idBuilder = id.toBuilder();
+              idBuilder.setKey(id.getKey());
+              idBuilder.setTaskid(id.getTaskid());
+              newTuple.addRoots(idBuilder);
+            }
+
+            for (ByteString b : dataTuple.getValuesList()) {
+              newTuple.addValues(b);
+            }
+
+            for (int id : dataTuple.getDestTaskIdsList()) {
+              newTuple.addDestTaskIds(id);
+            }
+
+            if (dataTuple.hasSourceTask()) {
+              newTuple.setSourceTask(dataTuple.getSourceTask());
+            }
+            if (dataTuple.hasSubTaskDest()) {
+              newTuple.setSubTaskDest(dataTuple.getSubTaskDest());
+            }
+            if (dataTuple.hasSubTaskOrigin()) {
+              newTuple.setSubTaskOrigin(dataTuple.getSubTaskOrigin());
+            }
+
+            t.copyDataTuple(stream, newTuple, 0);
+          }
+        }
       }
     }
   }

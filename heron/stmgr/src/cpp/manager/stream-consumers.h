@@ -20,6 +20,7 @@
 #include <list>
 #include <vector>
 #include <typeinfo>   // operator typeid
+#include <string>
 #include "proto/messages.h"
 #include "network/network.h"
 #include "basics/basics.h"
@@ -33,11 +34,13 @@ class ShuffleGrouping;
 
 class StreamConsumers {
  public:
-  StreamConsumers(const proto::api::InputStream& _is, const proto::api::StreamSchema& _schema,
+  StreamConsumers(proto::system::PhysicalPlan* _pplan, std::string _stmgr, std::string _component,
+                  const proto::api::InputStream& _is, const proto::api::StreamSchema& _schema,
                   const std::vector<sp_int32>& _task_ids);
   virtual ~StreamConsumers();
 
-  void NewConsumer(const proto::api::InputStream& _is, const proto::api::StreamSchema& _schema,
+  void NewConsumer(proto::system::PhysicalPlan* _pplan, std::string _stmgr, std::string _component,
+                   const proto::api::InputStream& _is, const proto::api::StreamSchema& _schema,
                    const std::vector<sp_int32>& _task_ids);
 
   void GetListToSend(const proto::system::HeronDataTuple& _tuple, std::vector<sp_int32>& _return);

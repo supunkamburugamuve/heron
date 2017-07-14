@@ -19,20 +19,27 @@
 
 #include <list>
 #include <vector>
+#include <string>
 #include "grouping/grouping.h"
 #include "proto/messages.h"
 #include "basics/basics.h"
+#include "util/collective-tree.h"
 
 namespace heron {
 namespace stmgr {
 
 class AllGrouping : public Grouping {
  public:
-  explicit AllGrouping(const std::vector<sp_int32>& _task_ids);
+  explicit AllGrouping(const proto::api::InputStream * _is, proto::system::PhysicalPlan* _pplan,
+                       std::string _component, std::string _stmgr,
+                       const std::vector<sp_int32>& _task_ids);
   virtual ~AllGrouping();
 
   virtual void GetListToSend(const proto::system::HeronDataTuple& _tuple,
                              std::vector<sp_int32>& _return);
+
+ private:
+  proto::system::PhysicalPlan* pplan_;
 };
 
 }  // namespace stmgr

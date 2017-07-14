@@ -108,5 +108,10 @@ const sp_string HeronInternalsConfigVars::HERON_STREAMMGR_NETWORK_BACKPRESSURE_H
     "heron.streammgr.network.backpressure.highwatermark.mb";
 const sp_string HeronInternalsConfigVars::HERON_STREAMMGR_NETWORK_BACKPRESSURE_LOWWATERMARK_MB =
     "heron.streammgr.network.backpressure.lowwatermark.mb";
+
+const sp_string HeronInternalsConfigVars::HERON_COLLECTIVE_BROADCAST_TREE_INTER_NODE_DEGREE =
+    "heron.collective.broadcast.internode.degree";
+const sp_string HeronInternalsConfigVars::HERON_COLLECTIVE_BROADCAST_TREE_INTRA_NODE_DEGREE =
+    "heron.collective.broadcast.intranode.degree";
 }  // namespace config
 }  // namespace heron

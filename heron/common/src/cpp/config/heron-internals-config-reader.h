@@ -183,6 +183,10 @@ class HeronInternalsConfigReader : public YamlFileReader {
   // Low water mark on the num in MB that can be left outstanding on a connection
   sp_int32 GetHeronStreammgrNetworkBackpressureLowwatermarkMb();
 
+  sp_int32 GetHeronCollectiveBroadcastTreeInterNodeDegree();
+
+  sp_int32 GetHeronCollectiveBroadcastTreeIntraNodeDegree();
+
  protected:
   HeronInternalsConfigReader(EventLoop* eventLoop, const sp_string& _defaults_file);
   virtual ~HeronInternalsConfigReader();
