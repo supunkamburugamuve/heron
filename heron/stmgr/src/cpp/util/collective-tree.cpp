@@ -115,7 +115,17 @@ bool CollectiveTree::getMessageExpectedIndexes(TreeNode *node,
 
   if (node->children.size() > 0) {
     for (size_t i = 0; i < node->children.size(); i++) {
-      table.push_back(node->children.at(i)->taskId);
+      if (node->children.at(i)->nodeType == TASK) {
+        table.push_back(node->children.at(i)->taskId);
+      } else if (node->children.at(i)->nodeType == STMGR) {
+        for (size_t j = 0; j < node->children.at(i)->children.size(); j++) {
+          TreeNode *temp = node->children.at(i)->children.at(j);
+          if (temp->nodeType == TASK) {
+            table.push_back(temp->taskId);
+            break;
+          }
+        }
+      }
     }
   }
   // we only need the first one
