@@ -96,5 +96,9 @@ Grouping* Grouping::Create(proto::system::PhysicalPlan* _pplan, std::string _stm
   }
 }
 
+bool Grouping::IsDestTaskCalculationRequired() {
+  return false;
+}
+
 }  // namespace stmgr
 }  // namespace heron

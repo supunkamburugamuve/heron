@@ -160,6 +160,7 @@ class StMgr {
 
   proto::system::HeronTupleSet2 current_control_tuple_set_;
   std::vector<sp_int32> out_tasks_;
+  proto::system::HeronDataTuple temp_data_tuple_;
 
   bool is_acking_enabled;
 

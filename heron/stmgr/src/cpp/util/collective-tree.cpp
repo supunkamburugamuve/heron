@@ -41,22 +41,29 @@ CollectiveTree::CollectiveTree(proto::system::PhysicalPlan* _pplan,
   inter_node_degree_ = _inter_node_degree;
 }
 
-void CollectiveTree::getRoutingTables(std::vector<int> &list) {
+void CollectiveTree::getRoutingTables(std::unordered_map<int, std::vector<int>*> &list) {
   list.clear();
+  std::unordered_map<int, std::string> comp_stmgrs;
+  getStmgrsOfComponentTaskIds(is_->stream().component_name(), comp_stmgrs);
 
-  TreeNode *root = buildInterNodeTree();
+  for (auto it = comp_stmgrs.begin(); it != comp_stmgrs.end(); ++it) {
+    LOG(INFO) << "Component ids: " << it->first << " : " << it->second;
 
-  if (root == NULL) {
-    LOG(ERROR) << "Failed to build the tree";
-    return;
-  }
+    TreeNode *root = buildInterNodeTree(it->second);
 
-  TreeNode *s = search(root, stmgr_);
-  if (s != NULL) {
-    std::vector<int> table;
-    getMessageExpectedIndexes(s, table);
-    for (size_t i = 0; i < table.size(); i++) {
-      list.push_back(table.at(i));
+    if (root == NULL) {
+      LOG(ERROR) << "Failed to build the tree";
+      return;
+    }
+
+    TreeNode *s = search(root, stmgr_);
+    if (s != NULL) {
+      std::vector<int>* table = new std::vector<int>();
+      getMessageExpectedIndexes(s, *table);
+      for (size_t i = 0; i < table->size(); i++) {
+        std::pair<int, std::vector<int>*> p(it->first, table);
+        list.insert(p);
+      }
     }
   }
 }
@@ -90,6 +97,16 @@ void CollectiveTree::getTaskIdsOfComponent(std::string stmgr,
   }
 }
 
+void CollectiveTree::getStmgrsOfComponentTaskIds(std::string component,
+                                                 std::unordered_map<int, std::string> &stmgrs) {
+  for (int i = 0; i < pplan_->instances_size(); i++) {
+    heron::proto::system::Instance instance = pplan_->instances(i);
+    if (instance.info().component_name().compare(component) == 0) {
+      stmgrs[instance.info().task_id()] = instance.stmgr_id();
+    }
+  }
+}
+
 void CollectiveTree::getStmgrsOfComponent(std::string component, std::vector<std::string> &stmgrs) {
   std::set<std::string> stmgr_set;
   for (int i = 0; i < pplan_->instances_size(); i++) {
@@ -98,7 +115,14 @@ void CollectiveTree::getStmgrsOfComponent(std::string component, std::vector<std
       stmgr_set.insert(instance.stmgr_id());
     }
   }
-  stmgrs.assign(stmgr_set.begin(), stmgr_set.end());
+  //  stmgrs.assign(stmgr_set.begin(), stmgr_set.end());
+  std::set<std::string>::iterator it;
+  std::string s = "";
+  for (it = stmgr_set.begin(); it != stmgr_set.end(); ++it) {
+    s += *it + " ";
+    stmgrs.push_back(*it);
+  }
+  LOG(INFO) << "STMGRS: " << s;
 }
 
 bool CollectiveTree::getMessageExpectedIndexes(TreeNode *node,
@@ -154,7 +178,7 @@ TreeNode* CollectiveTree::search(TreeNode *root, std::string stmgr) {
   return NULL;
 }
 
-TreeNode* CollectiveTree::buildInterNodeTree() {
+TreeNode* CollectiveTree::buildInterNodeTree(std::string start_stmgr) {
   heron::proto::api::StreamId id = is_->stream();
   std::vector<std::string> stmgrs;
   getStmgrsOfComponent(component_, stmgrs);
@@ -165,10 +189,18 @@ TreeNode* CollectiveTree::buildInterNodeTree() {
   }
 
   std::sort(stmgrs.begin(), stmgrs.end());
+  int start_index = 0;
+  for (int i = 0; stmgrs.size(); i++) {
+    if (stmgrs.at(i).compare(start_stmgr) == 0) {
+      start_index = i;
+      break;
+    }
+  }
+  LOG(INFO) << "Start index for : " << start_stmgr << " " << start_index;
 
-  TreeNode *root = buildIntraNodeTree(stmgrs.at(0));
+  TreeNode *root = buildIntraNodeTree(stmgrs.at(start_index));
   if (root == NULL) {
-    LOG(ERROR) << "Intranode tree didn't built: " << stmgrs.at(0);
+    LOG(ERROR) << "Intranode tree didn't built: " << stmgrs.at(start_index);
     return NULL;
   }
 
@@ -180,7 +212,7 @@ TreeNode* CollectiveTree::buildInterNodeTree() {
 
   while (i < stmgrs.size()) {
     if (current->children.size() < currentInterNodeDegree) {
-      TreeNode * e = buildIntraNodeTree(stmgrs.at(i));
+      TreeNode * e = buildIntraNodeTree(stmgrs.at((i + start_index) % stmgrs.size()));
       if (e != NULL) {
         current->children.push_back(e);
         e->parent = current;

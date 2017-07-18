@@ -37,9 +37,10 @@ class AllGrouping : public Grouping {
 
   virtual void GetListToSend(const proto::system::HeronDataTuple& _tuple,
                              std::vector<sp_int32>& _return);
-
+  virtual bool IsDestTaskCalculationRequired();
  private:
   proto::system::PhysicalPlan* pplan_;
+  std::unordered_map<int, std::vector<int>*> task_routing_;
 };
 
 }  // namespace stmgr

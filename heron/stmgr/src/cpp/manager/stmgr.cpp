@@ -534,8 +534,41 @@ void StMgr::HandleStreamManagerData(const sp_string&,
 
   // We have a shortcut for non-acking case
   if (!is_acking_enabled) {
-    server_->SendToInstance2(_task_id, _message.set().size(),
-                             heron_tuple_set_2_, _message.set().c_str());
+    tuple_set_from_other_stmgr_->ParsePartialFromString(_message.set());
+    if (tuple_set_from_other_stmgr_->has_data()) {
+      proto::system::HeronDataTupleSet2* d = tuple_set_from_other_stmgr_->mutable_data();
+      std::pair<sp_string, sp_string> stream =
+          make_pair(d->stream().component_name(), d->stream().id());
+      auto s = stream_consumers_.find(stream);
+      bool sent = false;
+      if (s != stream_consumers_.end()) {
+        StreamConsumers* s_consumer = s->second;
+        if (s_consumer->IsDestTaskCalculationRequired()) {
+          out_tasks_.clear();
+          s_consumer->GetListToSend(temp_data_tuple_, out_tasks_);
+          for (size_t i = 0; i < out_tasks_.size(); i++) {
+            const sp_string& dest_stmgr_id = task_id_to_stmgr_[out_tasks_.at(i)];
+            if (dest_stmgr_id == stmgr_id_) {
+              // Our own loopback
+              server_->SendToInstance2(out_tasks_.at(i), *tuple_set_from_other_stmgr_);
+              // LOG(INFO) << "Sending to instance :" << i << " " << dest_stmgr_id;
+            } else {
+              // LOG(INFO) << "Sending to stmgr :" << out_tasks_.at(i) << " " << dest_stmgr_id;
+              clientmgr_->SendTupleStreamMessage(out_tasks_.at(i), dest_stmgr_id,
+                                                 *tuple_set_from_other_stmgr_);
+            }
+            sent = true;
+          }
+        }
+      }
+      if (!sent) {
+        server_->SendToInstance2(_task_id, _message.set().size(),
+                                           heron_tuple_set_2_, _message.set().c_str());
+      }
+    } else {
+      server_->SendToInstance2(_task_id, _message.set().size(),
+                                   heron_tuple_set_2_, _message.set().c_str());
+    }
   } else {
     tuple_set_from_other_stmgr_->ParsePartialFromString(_message.set());
 
@@ -699,6 +732,8 @@ void StMgr::CopyDataOutBound(sp_int32 _src_task_id, bool _local_spout,
                              const std::vector<sp_int32>& _out_tasks) {
   bool first_iteration = true;
   for (auto& i : _out_tasks) {
+    // LOG(INFO) << "Copy message with: " << _streamid.id() << " " << _streamid.component_name()
+    //           << " " << i;
     sp_int64 tuple_key = tuple_cache_->add_data_tuple(i, _streamid, _tuple);
     if (_tuple->roots_size() > 0) {
       // Anchored tuple

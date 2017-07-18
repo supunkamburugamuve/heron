@@ -54,6 +54,8 @@ class StreamConsumers {
     return false;
   }
 
+  bool IsDestTaskCalculationRequired();
+
  private:
   std::list<Grouping*> consumers_;
 };

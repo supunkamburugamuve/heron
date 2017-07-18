@@ -62,5 +62,12 @@ void StreamConsumers::GetListToSend(const proto::system::HeronDataTuple& _tuple,
     (*iter)->GetListToSend(_tuple, _return);
   }
 }
+
+bool StreamConsumers::IsDestTaskCalculationRequired() {
+  for (auto iter = consumers_.begin(); iter != consumers_.end(); ++iter) {
+    return (*iter)->IsDestTaskCalculationRequired();
+  }
+  return false;
+}
 }  // namespace stmgr
 }  // namespace heron

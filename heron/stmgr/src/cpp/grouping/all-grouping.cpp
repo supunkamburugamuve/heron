@@ -47,10 +47,16 @@ AllGrouping::AllGrouping(const proto::api::InputStream* _is, proto::system::Phys
   }
   LOG(INFO) << "Tasks before: " << s;
   task_ids_.clear();
-  tree.getRoutingTables(task_ids_);
+
+  tree.getRoutingTables(task_routing_);
   s = "";
-  for (size_t i = 0; i < task_ids_.size(); i++) {
-    s += std::to_string(task_ids_.at(i)) + " ";
+  for (auto it = task_routing_.begin(); it != task_routing_.end(); ++it) {
+    std::vector<int> *tasks = it->second;
+    s += std::to_string(it->first) + " : ";
+    for (size_t i = 0; i < tasks->size(); i++) {
+     s += std::to_string(tasks->at(i)) + " ";
+    }
+    s += "\n";
   }
   LOG(INFO) << "Tasks after: " << s;
 }
@@ -59,9 +65,16 @@ AllGrouping::~AllGrouping() {}
 
 void AllGrouping::GetListToSend(const proto::system::HeronDataTuple&,
                                 std::vector<sp_int32>& _return) {
-  for (sp_uint32 i = 0; i < task_ids_.size(); ++i) {
-    _return.push_back(task_ids_[i]);
+  for (auto it = task_routing_.begin(); it != task_routing_.end(); ++it) {
+    std::vector<int> *tasks = it->second;
+    for (size_t i = 0; i < tasks->size(); i++) {
+      _return.push_back(tasks->at(i));
+    }
   }
+}
+
+bool AllGrouping::IsDestTaskCalculationRequired() {
+  return true;
 }
 
 }  // namespace stmgr
