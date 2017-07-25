@@ -43,7 +43,7 @@ class StreamConsumers {
                    const proto::api::InputStream& _is, const proto::api::StreamSchema& _schema,
                    const std::vector<sp_int32>& _task_ids);
 
-  void GetListToSend(const proto::system::HeronDataTuple& _tuple, std::vector<sp_int32>& _return);
+  void GetListToSend(proto::system::HeronDataTuple& _tuple, std::vector<sp_int32>& _return);
 
   inline bool isShuffleGrouping() {
     ShuffleGrouping* grouping = dynamic_cast<ShuffleGrouping *>(consumers_.front());

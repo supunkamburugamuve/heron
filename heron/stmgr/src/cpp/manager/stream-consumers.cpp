@@ -56,7 +56,7 @@ void StreamConsumers::NewConsumer(proto::system::PhysicalPlan* _pplan, std::stri
                                          _is.gtype(), _is, _schema, _task_ids));
 }
 
-void StreamConsumers::GetListToSend(const proto::system::HeronDataTuple& _tuple,
+void StreamConsumers::GetListToSend(proto::system::HeronDataTuple& _tuple,
                                     std::vector<sp_int32>& _return) {
   for (auto iter = consumers_.begin(); iter != consumers_.end(); ++iter) {
     (*iter)->GetListToSend(_tuple, _return);

@@ -87,13 +87,25 @@ public class SubTasks {
   private void initializeSubTask(TopologyAPI.StreamId stream, SubTask task) {
     List<Integer> incomingTasks = new ArrayList<>();
     List<Integer> destTask = new ArrayList<>();
-
+    List<Pair<Integer, Integer>> routingTable = new ArrayList<>();
     CollectiveBinaryTreeHelper collectiveHelper = new CollectiveBinaryTreeHelper(helper,
         intraNodeDegree, interNodeDegree, TopologyAPI.Grouping.REDUCE);
-    Map<TopologyAPI.StreamId, List<Pair<Integer, Integer>>> table = collectiveHelper.getRoutingTables();
-    List<Pair<Integer, Integer>> routingTable = table.get(stream);
-    if (routingTable == null) {
-      throw new RuntimeException("Failed to get routing table for reduce instance: " + stream);
+    Map<TopologyAPI.StreamId, List<Pair<Integer, Integer>>> table =
+        collectiveHelper.getRoutingTables();
+    List<Pair<Integer, Integer>> reduceRoutingTable = table.get(stream);
+
+    CollectiveBinaryTreeHelper allReduceTree = new CollectiveBinaryTreeHelper(helper,
+        intraNodeDegree, interNodeDegree, TopologyAPI.Grouping.ALLREDUCE);
+    Map<TopologyAPI.StreamId, List<Pair<Integer, Integer>>> allReduceTreeTable =
+        allReduceTree.getRoutingTables();
+    List<Pair<Integer, Integer>> allReduceTreeRoutingTable = allReduceTreeTable.get(stream);
+
+    if (reduceRoutingTable != null) {
+      routingTable.addAll(reduceRoutingTable);
+    }
+
+    if (allReduceTreeRoutingTable != null) {
+      routingTable.addAll(allReduceTreeRoutingTable);
     }
 
     String s = "";
@@ -149,14 +161,28 @@ public class SubTasks {
   }
 
   private void initializeSubTaskInstances() {
-    Map<TopologyAPI.InputStream, IReduce> functions =
+    Map<TopologyAPI.InputStream, IReduce> reduceFunctions =
         helper.getCollectiveGroupingFunctions(TopologyAPI.Grouping.REDUCE);
 
-    for (Map.Entry<TopologyAPI.InputStream, IReduce> entry : functions.entrySet()) {
+    for (Map.Entry<TopologyAPI.InputStream, IReduce> entry : reduceFunctions.entrySet()) {
       ReductionSubTask instance = new ReductionSubTask(helper,
           helper.getMyTaskId(), entry.getValue(),
           entry.getKey(), subTaskOutputCollector);
       subTaskMap.put(entry.getKey().getStream(), instance);
+      LOG.log(Level.INFO, "Reduce: " + entry.getKey().getStream() + ":" +
+          entry.getKey().getStream().getComponentName());
+    }
+
+    Map<TopologyAPI.InputStream, IReduce> allReduceFunctions =
+        helper.getCollectiveGroupingFunctions(TopologyAPI.Grouping.ALLREDUCE);
+
+    for (Map.Entry<TopologyAPI.InputStream, IReduce> entry : allReduceFunctions.entrySet()) {
+      ReductionSubTask instance = new ReductionSubTask(helper,
+          helper.getMyTaskId(), entry.getValue(),
+          entry.getKey(), subTaskOutputCollector);
+      subTaskMap.put(entry.getKey().getStream(), instance);
+      LOG.log(Level.INFO, "AllReduce: " + entry.getKey().getStream() + ":" +
+          entry.getKey().getStream().getComponentName());
     }
   }
 }

@@ -32,7 +32,7 @@ class FieldsGrouping : public Grouping {
                  const std::vector<sp_int32>& _task_ids);
   virtual ~FieldsGrouping();
 
-  virtual void GetListToSend(const proto::system::HeronDataTuple& _tuple,
+  virtual void GetListToSend(proto::system::HeronDataTuple& _tuple,
                              std::vector<sp_int32>& _return);
 
  private:

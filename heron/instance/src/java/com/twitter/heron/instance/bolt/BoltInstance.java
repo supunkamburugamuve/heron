@@ -257,7 +257,7 @@ public class BoltInstance implements IInstance {
         // Decode the tuple
         TupleImpl t = new TupleImpl(topologyContext, stream, dataTuple.getKey(),
             dataTuple.getRootsList(), values, currentTime, false, dataTuple.getSourceTask());
-        if (!dataTuple.getSubTaskDest()) {
+        if (!dataTuple.hasSubTaskDest() || !dataTuple.getSubTaskDest()) {
           // Delegate to the use defined bolt
 //          LOG.log(Level.INFO, String.format("Subtask dest false %d -> %d",
 //              dataTuple.getSourceTask(), helper.getMyTaskId()));
@@ -296,8 +296,8 @@ public class BoltInstance implements IInstance {
         for (Pair<Integer, Integer> r : routs) {
           if (r.first == helper.getMyTaskId() && r.second != helper.getMyTaskId()) {
             OutgoingTupleCollection t = instanceOutPutters.get(r.second);
-//            LOG.log(Level.INFO, "Sending to task: " + r.second + " " +
-//                " stream: " + stream.getId());
+            LOG.log(Level.INFO, "Sending to task: " + r.second + " " +
+                " stream: " + stream.getId());
 
             HeronTuples.HeronDataTuple.Builder newTuple = dataTuple.toBuilder();
             newTuple.setKey(dataTuple.getKey());

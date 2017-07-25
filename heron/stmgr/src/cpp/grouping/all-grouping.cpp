@@ -63,7 +63,7 @@ AllGrouping::AllGrouping(const proto::api::InputStream* _is, proto::system::Phys
 
 AllGrouping::~AllGrouping() {}
 
-void AllGrouping::GetListToSend(const proto::system::HeronDataTuple&,
+void AllGrouping::GetListToSend(proto::system::HeronDataTuple& tuple_,
                                 std::vector<sp_int32>& _return) {
   for (auto it = task_routing_.begin(); it != task_routing_.end(); ++it) {
     std::vector<int> *tasks = it->second;
@@ -71,6 +71,7 @@ void AllGrouping::GetListToSend(const proto::system::HeronDataTuple&,
       _return.push_back(tasks->at(i));
     }
   }
+  tuple_.set_col_stage(3);
 }
 
 bool AllGrouping::IsDestTaskCalculationRequired() {

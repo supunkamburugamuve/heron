@@ -60,10 +60,14 @@ public class SubTaskOutputCollector extends BoltOutputCollectorImpl {
 //            helper.getMyTaskId(), streamId, s));
         bldr.setSubTaskDest(true);
         bldr.addAllDestTaskIds(subTasks);
+        bldr.setSourceTask(helper.getMyTaskId());
+        bldr.setColStage(2);
       } else {
 //        LOG.log(Level.INFO, String.format("%d Subtask adding subtask destinations false: %s, %s",
 //            helper.getMyTaskId(), streamId, s));
+        bldr.setSourceTask(helper.getMyTaskId());
         bldr.setSubTaskDest(false);
+        bldr.setColStage(3);
       }
     }
   }

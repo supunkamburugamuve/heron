@@ -408,6 +408,7 @@ void StMgrServer::SendToInstance2(sp_int32 _task_id,
                                   sp_int32 _byte_size,
                                   const sp_string _type_name,
                                   const char* _message) {
+//  LOG(INFO) << "Sending message to: " << _task_id;
   TaskIdInstanceDataMap::iterator iter = instance_info_.find(_task_id);
   if (iter == instance_info_.end() || iter->second->conn_ == NULL) {
     LOG(ERROR) << "task_id " << _task_id << " has not yet connected to us. Dropping...";
@@ -418,6 +419,7 @@ void StMgrServer::SendToInstance2(sp_int32 _task_id,
 
 void StMgrServer::SendToInstance2(sp_int32 _task_id,
                                   const proto::system::HeronTupleSet2& _message) {
+//  LOG(INFO) << "Sending message to: " << _task_id;
   TaskIdInstanceDataMap::iterator iter = instance_info_.find(_task_id);
   if (iter == instance_info_.end() || iter->second->conn_ == NULL) {
     LOG(ERROR) << "task_id " << _task_id << " has not yet connected to us. Dropping..."

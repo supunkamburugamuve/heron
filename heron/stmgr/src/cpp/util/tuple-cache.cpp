@@ -130,7 +130,7 @@ sp_int64 TupleCache::TupleList::add_data_tuple(const proto::api::StreamId& _stre
 
   std::string* added_tuple = current_->mutable_data()->add_tuples();
   _tuple->SerializePartialToString(added_tuple);
-
+  current_->set_col_stage(_tuple->col_stage());
   sp_int64 tuple_size = _tuple->GetCachedSize();
   current_size_ += tuple_size;
   *_total_size += tuple_size;

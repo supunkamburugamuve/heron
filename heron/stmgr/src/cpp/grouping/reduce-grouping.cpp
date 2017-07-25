@@ -35,12 +35,13 @@ ReduceGrouping::ReduceGrouping(const std::vector<sp_int32>& _task_ids) : Groupin
 
 ReduceGrouping::~ReduceGrouping() {}
 
-void ReduceGrouping::GetListToSend(const proto::system::HeronDataTuple& _tuple,
+void ReduceGrouping::GetListToSend(proto::system::HeronDataTuple& _tuple,
                                     std::vector<sp_int32>& _return) {
   if (_tuple.sub_task_dest() && _tuple.dest_task_ids_size() > 0) {
     // LOG(INFO) << "Reduction to: " << _tuple.dest_task_ids(0);
     _return.push_back(_tuple.dest_task_ids(0));
   } else {
+    LOG(INFO) << "Subtask dest ****** : " << _tuple.sub_task_dest();
     _return.push_back(task_ids_[next_index_]);
     next_index_ = (next_index_ + 1) % task_ids_.size();
 //    LOG(INFO) << "shuffle to: " << next_index_;

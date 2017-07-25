@@ -26,6 +26,7 @@
 #include "grouping/lowest-grouping.h"
 #include "grouping/custom-grouping.h"
 #include "grouping/reduce-grouping.h"
+#include "grouping/allreduce-grouping.h"
 #include "proto/messages.h"
 #include "basics/basics.h"
 #include "errors/errors.h"
@@ -58,6 +59,12 @@ Grouping* Grouping::Create(proto::system::PhysicalPlan* _pplan, std::string _stm
     case proto::api::ALL: {
       LOG(INFO) << "ALL Grouping";
       return new AllGrouping(&_is, _pplan, _component, _stmgr, _task_ids);
+      break;
+    }
+
+    case proto::api::ALLREDUCE: {
+      LOG(INFO) << "ALLReduce Grouping";
+      return new AllReduceGrouping(&_is, _pplan, _component, _stmgr, _task_ids);
       break;
     }
 

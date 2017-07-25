@@ -52,19 +52,22 @@ class CollectiveTree {
                  std::string _stmgr, std::string _component,
                  int _intra_node_degree, int _inter_node_degree);
   void getRoutingTables(std::unordered_map<int, std::vector<int>*>& list);
+  void getRoutingTables(std::string stmgr, int originate_task,
+                        std::unordered_map<int, std::vector<int>*> &list);
+  void getTaskIdsOfComponent(std::string myComponent, std::vector<int> &taskIds);
+  void getStmgrsOfComponent(std::string component, std::vector<std::string> &stmgrs);
+  void getTaskIdsOfComponent(std::string stmgr,
+                               std::string myComponent, std::vector<int> &taskIds);
 
  private:
   bool getInstanceIdForComponentId(std::string _component, int _taskId, std::string &instance);
-  void getTaskIdsOfComponent(std::string stmgr,
-                             std::string myComponent, std::vector<int> &taskIds);
-
-  void getStmgrsOfComponent(std::string component, std::vector<std::string> &stmgrs);
   void getStmgrsOfComponentTaskIds(std::string component,
                                    std::unordered_map<int, std::string> &stmgrs);
   TreeNode* buildInterNodeTree(std::string start_stmgr);
   TreeNode* buildIntraNodeTree(std::string stmgr);
   TreeNode* search(TreeNode *root, std::string stmgr);
   bool getMessageExpectedIndexes(TreeNode *node, std::vector<int> &table);
+  void getStmgrOfTaskId(int taskId, std::string &stmgr);
 
   proto::system::PhysicalPlan* pplan_;
   int intra_node_degree_;
@@ -72,9 +75,8 @@ class CollectiveTree {
   const proto::api::InputStream *is_;
   std::string stmgr_;
   std::string component_;
+  int root_task_;
 };
-
-
 
 }  // namespace stmgr
 }  // namespace heron

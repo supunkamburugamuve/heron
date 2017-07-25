@@ -535,7 +535,8 @@ void StMgr::HandleStreamManagerData(const sp_string&,
   // We have a shortcut for non-acking case
   if (!is_acking_enabled) {
     tuple_set_from_other_stmgr_->ParsePartialFromString(_message.set());
-    if (tuple_set_from_other_stmgr_->has_data()) {
+    if (tuple_set_from_other_stmgr_->has_data() && tuple_set_from_other_stmgr_->has_col_stage() &&
+        tuple_set_from_other_stmgr_->col_stage() == 3) {
       proto::system::HeronDataTupleSet2* d = tuple_set_from_other_stmgr_->mutable_data();
       std::pair<sp_string, sp_string> stream =
           make_pair(d->stream().component_name(), d->stream().id());
@@ -548,7 +549,7 @@ void StMgr::HandleStreamManagerData(const sp_string&,
           s_consumer->GetListToSend(temp_data_tuple_, out_tasks_);
           for (size_t i = 0; i < out_tasks_.size(); i++) {
             const sp_string& dest_stmgr_id = task_id_to_stmgr_[out_tasks_.at(i)];
-            if (dest_stmgr_id == stmgr_id_) {
+            if (dest_stmgr_id.compare(stmgr_id_) == 0) {
               // Our own loopback
               server_->SendToInstance2(out_tasks_.at(i), *tuple_set_from_other_stmgr_);
               // LOG(INFO) << "Sending to instance :" << i << " " << dest_stmgr_id;

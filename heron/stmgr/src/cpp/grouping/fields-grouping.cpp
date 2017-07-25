@@ -44,7 +44,7 @@ FieldsGrouping::FieldsGrouping(const proto::api::InputStream& _is,
 
 FieldsGrouping::~FieldsGrouping() {}
 
-void FieldsGrouping::GetListToSend(const proto::system::HeronDataTuple& _tuple,
+void FieldsGrouping::GetListToSend(proto::system::HeronDataTuple& _tuple,
                                    std::vector<sp_int32>& _return) {
   sp_int32 task_index = 0;
   size_t prime_num = 633910111UL;

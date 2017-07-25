@@ -41,15 +41,46 @@ CollectiveTree::CollectiveTree(proto::system::PhysicalPlan* _pplan,
   inter_node_degree_ = _inter_node_degree;
 }
 
+void CollectiveTree::getRoutingTables(std::string root_stmgr, int originate_task,
+                                      std::unordered_map<int, std::vector<int>*> &list) {
+  list.clear();
+  // getStmgrOfTaskId(originate_task, reduce_stmgr);
+
+  std::vector<std::string> stmgrs;
+  getStmgrsOfComponent(component_, stmgrs);
+
+  LOG(INFO) << "Component ids: " << root_stmgr;
+  TreeNode *root = buildInterNodeTree(root_stmgr);
+  if (root == NULL) {
+    LOG(ERROR) << "Failed to build the tree";
+    return;
+  }
+
+  TreeNode *s = search(root, stmgr_);
+  if (s != NULL) {
+    std::vector<int>* table = new std::vector<int>();
+    getMessageExpectedIndexes(s, *table);
+    for (size_t i = 0; i < table->size(); i++) {
+      std::pair<int, std::vector<int>*> p(originate_task, table);
+      list.insert(p);
+    }
+  }
+}
+
 void CollectiveTree::getRoutingTables(std::unordered_map<int, std::vector<int>*> &list) {
   list.clear();
   std::unordered_map<int, std::string> comp_stmgrs;
   getStmgrsOfComponentTaskIds(is_->stream().component_name(), comp_stmgrs);
 
+  std::vector<std::string> stmgrs;
+  getStmgrsOfComponent(component_, stmgrs);
+
   for (auto it = comp_stmgrs.begin(); it != comp_stmgrs.end(); ++it) {
     LOG(INFO) << "Component ids: " << it->first << " : " << it->second;
-
-    TreeNode *root = buildInterNodeTree(it->second);
+    std::string root_stmgr;
+    // we cannot find the stmgr of parent in the component
+    root_stmgr = it->second;
+    TreeNode *root = buildInterNodeTree(root_stmgr);
 
     if (root == NULL) {
       LOG(ERROR) << "Failed to build the tree";
@@ -82,6 +113,17 @@ bool CollectiveTree::getInstanceIdForComponentId(std::string _component,
   return false;
 }
 
+void CollectiveTree::getStmgrOfTaskId(int taskId, std::string &stmgr) {
+  for (int i = 0; i < pplan_->instances_size(); i++) {
+    heron::proto::system::Instance instance = pplan_->instances(i);
+    if (instance.info().task_id() == taskId) {
+      stmgr = instance.stmgr_id();
+      LOG(INFO) << "GetTaskIDOfComponent: " << stmgr << " " << instance.info().task_id();
+      break;
+    }
+  }
+}
+
 void CollectiveTree::getTaskIdsOfComponent(std::string stmgr,
                                            std::string myComponent,
                                            std::vector<int> &taskIds) {
@@ -93,6 +135,17 @@ void CollectiveTree::getTaskIdsOfComponent(std::string stmgr,
         LOG(INFO) << "GetTaskIDOfComponent: " << stmgr << " " << myComponent
                   << " " << instance.info().task_id();
       }
+    }
+  }
+}
+
+void CollectiveTree::getTaskIdsOfComponent(std::string myComponent,
+                                           std::vector<int> &taskIds) {
+  for (int i = 0; i < pplan_->instances_size(); i++) {
+    heron::proto::system::Instance instance = pplan_->instances(i);
+    if (instance.info().component_name().compare(myComponent) == 0) {
+      taskIds.push_back(instance.info().task_id());
+      LOG(INFO) << "GetTaskIDOfComponent: " << myComponent << " " << instance.info().task_id();
     }
   }
 }
@@ -234,18 +287,17 @@ TreeNode* CollectiveTree::buildInterNodeTree(std::string start_stmgr) {
 TreeNode* CollectiveTree::buildIntraNodeTree(std::string stmgr) {
   std::vector<int> taskIds;
   heron::proto::api::StreamId id = is_->stream();
+  TreeNode *root = new TreeNode(NULL, -1, stmgr, "", STMGR);
 
   getTaskIdsOfComponent(stmgr, component_, taskIds);
   if (taskIds.size() == 0) {
-    return NULL;
+    return root;
   }
 
   std::sort(taskIds.begin(), taskIds.end());
   std::string instanceId;
 
-  TreeNode *root = new TreeNode(NULL, -1, stmgr, "", STMGR);
   TreeNode *current = root;
-
   uint32_t i = 0;
   std::queue<TreeNode *> nodes;
 

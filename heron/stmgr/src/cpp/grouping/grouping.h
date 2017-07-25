@@ -36,7 +36,7 @@ class Grouping {
                            const proto::api::StreamSchema& _schema,
                            const std::vector<sp_int32>& _task_ids);
 
-  virtual void GetListToSend(const proto::system::HeronDataTuple& _tuple,
+  virtual void GetListToSend(proto::system::HeronDataTuple& _tuple,
                              std::vector<sp_int32>& _return) = 0;
 
   virtual bool IsDestTaskCalculationRequired();
