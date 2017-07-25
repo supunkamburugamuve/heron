@@ -164,8 +164,10 @@ void CollectiveTree::getStmgrsOfComponent(std::string component, std::vector<std
   std::set<std::string> stmgr_set;
   for (int i = 0; i < pplan_->instances_size(); i++) {
     heron::proto::system::Instance instance = pplan_->instances(i);
-    if (instance.info().component_name().compare(component)) {
+    LOG(INFO) << "Instance: " << instance.info().component_name();
+    if (instance.info().component_name().compare(component) == 0) {
       stmgr_set.insert(instance.stmgr_id());
+      LOG(INFO) << "STMGR: " << instance.stmgr_id();
     }
   }
   //  stmgrs.assign(stmgr_set.begin(), stmgr_set.end());
