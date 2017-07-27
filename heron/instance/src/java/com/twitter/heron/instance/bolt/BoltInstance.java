@@ -296,8 +296,8 @@ public class BoltInstance implements IInstance {
         for (Pair<Integer, Integer> r : routs) {
           if (r.first == helper.getMyTaskId() && r.second != helper.getMyTaskId()) {
             OutgoingTupleCollection t = instanceOutPutters.get(r.second);
-            LOG.log(Level.INFO, "Sending to task: " + r.second + " " +
-                " stream: " + stream.getId());
+//            LOG.log(Level.INFO, "Sending to task: " + r.second + " " +
+//                " stream: " + stream.getId());
 
             HeronTuples.HeronDataTuple.Builder newTuple = dataTuple.toBuilder();
             newTuple.setKey(dataTuple.getKey());
