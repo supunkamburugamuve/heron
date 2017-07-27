@@ -67,7 +67,8 @@ public class BoltInstance implements IInstance {
   private final SystemConfig systemConfig;
   private OutgoingTupleCollection outputter;
   protected SubTasks subTasks;
-  private Map<TopologyAPI.StreamId, List<Pair<Integer, Integer>>> broadCastRoutingTable;
+  private Map<TopologyAPI.StreamId, List<Pair<Integer, Integer>>> broadCastRoutingTable =
+      new HashMap<>();
 
   public BoltInstance(PhysicalPlanHelper helper,
                       Communicator<HeronTuples.HeronTupleSet> streamInQueue,
@@ -128,9 +129,20 @@ public class BoltInstance implements IInstance {
 
     BroadcastBinaryTree broadcastBinaryTree = new BroadcastBinaryTree(helper, intraNodeDegree,
         interNodeDegree, TopologyAPI.Grouping.ALL);
-    broadCastRoutingTable = broadcastBinaryTree.getRoutingTables();
+    Map<TopologyAPI.StreamId, List<Pair<Integer, Integer>>> bcastTable =
+        broadcastBinaryTree.getRoutingTables();
+
+    BroadcastBinaryTree allReduceTree = new BroadcastBinaryTree(helper, intraNodeDegree,
+        interNodeDegree, TopologyAPI.Grouping.ALLREDUCE);
+    Map<TopologyAPI.StreamId, List<Pair<Integer, Integer>>> allReduceTable =
+        allReduceTree.getRoutingTables();
+
+    broadCastRoutingTable.putAll(bcastTable);
+    broadCastRoutingTable.putAll(allReduceTable);
+
     String s = "";
-    for (Map.Entry<TopologyAPI.StreamId, List<Pair<Integer, Integer>>> entry : broadCastRoutingTable.entrySet()) {
+    for (Map.Entry<TopologyAPI.StreamId, List<Pair<Integer, Integer>>> entry :
+        broadCastRoutingTable.entrySet()) {
       s += entry.getKey().getId();
       for (Pair<Integer, Integer> p : entry.getValue()) {
         s += "(" + p.first + ", " + p.second+ "), ";
