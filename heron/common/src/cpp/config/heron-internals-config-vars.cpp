@@ -113,5 +113,7 @@ const sp_string HeronInternalsConfigVars::HERON_COLLECTIVE_BROADCAST_TREE_INTER_
     "heron.collective.broadcast.internode.degree";
 const sp_string HeronInternalsConfigVars::HERON_COLLECTIVE_BROADCAST_TREE_INTRA_NODE_DEGREE =
     "heron.collective.broadcast.intranode.degree";
+const sp_string HeronInternalsConfigVars::HERON_COLLECTIVE_BROADCAST =
+    "heron.collective.broadcast";
 }  // namespace config
 }  // namespace heron

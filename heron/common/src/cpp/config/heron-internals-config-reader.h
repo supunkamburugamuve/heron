@@ -187,6 +187,8 @@ class HeronInternalsConfigReader : public YamlFileReader {
 
   sp_int32 GetHeronCollectiveBroadcastTreeIntraNodeDegree();
 
+  bool GetHeronCollectiveBroadcast();
+
  protected:
   HeronInternalsConfigReader(EventLoop* eventLoop, const sp_string& _defaults_file);
   virtual ~HeronInternalsConfigReader();

@@ -41,6 +41,7 @@ class AllGrouping : public Grouping {
  private:
   proto::system::PhysicalPlan* pplan_;
   std::unordered_map<int, std::vector<int>*> task_routing_;
+  bool collective_bcast_;
 };
 
 }  // namespace stmgr

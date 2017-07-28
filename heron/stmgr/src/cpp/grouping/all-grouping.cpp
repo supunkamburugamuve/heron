@@ -40,38 +40,49 @@ AllGrouping::AllGrouping(const proto::api::InputStream* _is, proto::system::Phys
                                   GetHeronCollectiveBroadcastTreeInterNodeDegree();
   int intra_node_tasks = config::HeronInternalsConfigReader::Instance()->
                                   GetHeronCollectiveBroadcastTreeIntraNodeDegree();
-  CollectiveTree tree(pplan_, _is, _stmgr, _component, intra_node_tasks, inter_node_tasks);
-  std::string s = "";
-  for (size_t i = 0; i < task_ids_.size(); i++) {
-    s += std::to_string(task_ids_.at(i)) + " ";
-  }
-  LOG(INFO) << "Tasks before: " << s;
-  task_ids_.clear();
-
-  tree.getRoutingTables(task_routing_);
-  s = "";
-  for (auto it = task_routing_.begin(); it != task_routing_.end(); ++it) {
-    std::vector<int> *tasks = it->second;
-    s += std::to_string(it->first) + " : ";
-    for (size_t i = 0; i < tasks->size(); i++) {
-     s += std::to_string(tasks->at(i)) + " ";
+  collective_bcast_ = config::HeronInternalsConfigReader::Instance()->
+                                  GetHeronCollectiveBroadcast();
+  if (collective_bcast_) {
+    CollectiveTree tree(pplan_, _is, _stmgr, _component, intra_node_tasks, inter_node_tasks);
+    std::string s = "";
+    for (size_t i = 0; i < task_ids_.size(); i++) {
+      s += std::to_string(task_ids_.at(i)) + " ";
     }
-    s += "\n";
+    LOG(INFO) << "Tasks before: " << s;
+    task_ids_.clear();
+
+    tree.getRoutingTables(task_routing_);
+    s = "";
+    for (auto it = task_routing_.begin(); it != task_routing_.end(); ++it) {
+      std::vector<int> *tasks = it->second;
+      s += std::to_string(it->first) + " : ";
+      for (size_t i = 0; i < tasks->size(); i++) {
+       s += std::to_string(tasks->at(i)) + " ";
+      }
+      s += "\n";
+    }
+    LOG(INFO) << "Tasks after: " << s;
   }
-  LOG(INFO) << "Tasks after: " << s;
 }
 
 AllGrouping::~AllGrouping() {}
 
 void AllGrouping::GetListToSend(proto::system::HeronDataTuple& tuple_,
                                 std::vector<sp_int32>& _return) {
-  for (auto it = task_routing_.begin(); it != task_routing_.end(); ++it) {
-    std::vector<int> *tasks = it->second;
-    for (size_t i = 0; i < tasks->size(); i++) {
-      _return.push_back(tasks->at(i));
+  if (collective_bcast_) {
+    for (auto it = task_routing_.begin(); it != task_routing_.end(); ++it) {
+      std::vector<int> *tasks = it->second;
+      for (size_t i = 0; i < tasks->size(); i++) {
+        _return.push_back(tasks->at(i));
+      }
     }
+    tuple_.set_col_stage(3);
+  } else {
+    for (sp_uint32 i = 0; i < task_ids_.size(); ++i) {
+      _return.push_back(task_ids_[i]);
+    }
+    tuple_.set_col_stage(0);
   }
-  tuple_.set_col_stage(3);
 }
 
 bool AllGrouping::IsDestTaskCalculationRequired() {

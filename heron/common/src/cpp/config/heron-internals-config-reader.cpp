@@ -257,5 +257,10 @@ sp_int32 HeronInternalsConfigReader::GetHeronCollectiveBroadcastTreeIntraNodeDeg
       .as<int>();
 }
 
+bool HeronInternalsConfigReader::GetHeronCollectiveBroadcast() {
+  return config_[HeronInternalsConfigVars::HERON_COLLECTIVE_BROADCAST]
+      .as<bool>();
+}
+
 }  // namespace config
 }  // namespace heron

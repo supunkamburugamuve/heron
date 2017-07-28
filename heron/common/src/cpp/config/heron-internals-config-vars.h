@@ -174,6 +174,7 @@ class HeronInternalsConfigVars {
   static const sp_string HERON_COLLECTIVE_BROADCAST_TREE_INTER_NODE_DEGREE;
 
   static const sp_string HERON_COLLECTIVE_BROADCAST_TREE_INTRA_NODE_DEGREE;
+  static const sp_string HERON_COLLECTIVE_BROADCAST;
 };
 }  // namespace config
 }  // namespace heron
