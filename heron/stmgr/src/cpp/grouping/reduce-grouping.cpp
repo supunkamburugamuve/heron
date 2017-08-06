@@ -41,7 +41,7 @@ void ReduceGrouping::GetListToSend(proto::system::HeronDataTuple& _tuple,
     // LOG(INFO) << "Reduction to: " << _tuple.dest_task_ids(0);
     _return.push_back(_tuple.dest_task_ids(0));
   } else {
-    LOG(INFO) << "Subtask dest ****** : " << _tuple.sub_task_dest();
+//    LOG(INFO) << "Subtask dest ****** : " << _tuple.sub_task_dest();
     _return.push_back(task_ids_[next_index_]);
     next_index_ = (next_index_ + 1) % task_ids_.size();
 //    LOG(INFO) << "shuffle to: " << next_index_;
