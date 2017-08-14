@@ -10,6 +10,7 @@ cc_library(
         "grouping/lowest-grouping.cpp",
         "grouping/shuffle-grouping.cpp",
         "grouping/reduce-grouping.cpp",
+        "grouping/keyedreduce-grouping.cpp",
         "grouping/allreduce-grouping.cpp",
     ],
     hdrs = [
@@ -20,6 +21,7 @@ cc_library(
         "grouping/lowest-grouping.h",
         "grouping/shuffle-grouping.h",
         "grouping/reduce-grouping.h",
+        "grouping/keyedreduce-grouping.h",
         "grouping/allreduce-grouping.h",
     ],
     copts = [

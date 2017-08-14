@@ -207,6 +207,16 @@ public class PhysicalPlanHelper {
     return new ArrayList<>(stmgrSet);
   }
 
+  public String getStmgrForCompoentTask(String component, int taskId) {
+    for (PhysicalPlans.Instance instance : pplan.getInstancesList()) {
+      if (instance.getInfo().getComponentName().equals(component) &&
+          instance.getInfo().getTaskId() == taskId) {
+        return instance.getStmgrId();
+      }
+    }
+    return null;
+  }
+
   // Accessors
 
   public String getMyHostname() {

@@ -31,6 +31,7 @@ enum Grouping {
   ALLREDUCE = 9;
   GATHER = 10;
   ALLGATHER = 11;
+  KEYEDREDUCE = 12;
 }
 
 enum Type {

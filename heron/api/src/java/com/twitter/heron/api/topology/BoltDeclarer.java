@@ -185,6 +185,28 @@ public class BoltDeclarer extends BaseComponentDeclarer<BoltDeclarer> {
     return grouping(bldr);
   }
 
+  public BoltDeclarer keyedReduceGrouping(String componentName, String streamId, Fields fields,
+                                     IReduce reduceFunction) {
+    TopologyAPI.InputStream.Builder bldr = TopologyAPI.InputStream.newBuilder();
+    bldr.setStream(
+        TopologyAPI.StreamId.newBuilder().setId(streamId).setComponentName(componentName));
+    bldr.setGtype(TopologyAPI.Grouping.KEYEDREDUCE);
+    bldr.setType(TopologyAPI.CustomGroupingObjectType.JAVA_OBJECT);
+    bldr.setCustomGroupingObject(ByteString.copyFrom(Utils.serialize(reduceFunction)));
+
+    TopologyAPI.StreamSchema.Builder gfbldr = TopologyAPI.StreamSchema.newBuilder();
+    for (int i = 0; i < fields.size(); ++i) {
+      TopologyAPI.StreamSchema.KeyType.Builder ktBldr =
+          TopologyAPI.StreamSchema.KeyType.newBuilder();
+      ktBldr.setKey(fields.get(i));
+      ktBldr.setType(TopologyAPI.Type.OBJECT);
+      gfbldr.addKeys(ktBldr);
+    }
+    bldr.setGroupingFields(gfbldr);
+
+    return grouping(bldr);
+  }
+
   public BoltDeclarer allReduceGrouping(String componentName, String streamId,
                                         IReduce reduceFunction) {
     TopologyAPI.InputStream.Builder bldr = TopologyAPI.InputStream.newBuilder();
